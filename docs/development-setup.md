@@ -70,7 +70,10 @@ From the project root with your virtual environment active:
 alembic upgrade head
 ```
 
-This establishes the `security_events` and `security_alerts` tables with optimized indexes in PostgreSQL.
+This applies migrations:
+- `001_create_security_events_table`: Canonical event ingestion store
+- `002_create_security_alerts_table`: Deduplicated security alerts store
+- `003_create_incidents_table`: Correlated security incidents and append-only audit ledger
 
 ---
 
@@ -103,25 +106,23 @@ python -m simulator.runner --scenario all
 
 ---
 
-## Step 7: Run Threat Detection Engine & Query Alerts
+## Step 7: Run Threat Detections & Correlate Incidents
 
-Once events are ingested into the database, trigger the detection evaluation run:
+Once events are ingested into the database, trigger threat detection and correlation:
 
 ```powershell
-# Run detections on stored events (PowerShell)
+# 1. Run detections on stored events
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/detections/run" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
 
-# List active alerts
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts"
+# 2. Correlate related alerts into incidents
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/correlate" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120, "window_minutes": 60}'
 
-# Filter by severity
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL"
-```
+# 3. List open incidents
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents?status=OPEN"
 
-Via cURL:
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/detections/run -H "Content-Type: application/json" -d '{"lookback_minutes": 120}'
-curl "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL"
+# 4. Investigate and resolve an incident (resolution_reason required)
+$body = @{ status = "RESOLVED"; resolution_reason = "Revoked unauthorized AdministratorAccess" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/<incident_id>" -Method Patch -ContentType "application/json" -Body $body
 ```
 
 ---
@@ -135,4 +136,4 @@ cd backend
 pytest -v
 ```
 
-All tests execute against an isolated in-memory test database and do not mutate your local development database.
+All 33 tests execute against an isolated in-memory test database and do not mutate your local development database.

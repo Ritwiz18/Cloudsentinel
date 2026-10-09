@@ -43,28 +43,6 @@ Ingests, validates, and persists a canonical security event. Enforces idempotenc
   - `outcome` (string, required, 1-32 chars): `SUCCESS`, `FAILURE`, or `DENIED`.
   - `metadata` (object, optional): Structured context or telemetry dictionary.
 
-#### Request Example:
-```json
-{
-  "event_id": "syn-auth-fail-a1b2c3d4e5f6",
-  "source": "simulator",
-  "event_type": "Authentication",
-  "timestamp": "2026-10-09T16:05:00Z",
-  "account_id": "112233445566",
-  "region": "us-east-1",
-  "actor": "arn:aws:iam::112233445566:user/analyst-bob",
-  "source_ip": "203.0.113.195",
-  "resource": "arn:aws:iam::112233445566:root",
-  "outcome": "FAILURE",
-  "metadata": {
-    "is_synthetic": true,
-    "scenario": "repeated_failed_authentication",
-    "attempt_number": 1,
-    "error_code": "AuthFailure.IncorrectPassword"
-  }
-}
-```
-
 #### Response (201 Created):
 ```json
 {
@@ -81,31 +59,9 @@ Ingests, validates, and persists a canonical security event. Enforces idempotenc
   "outcome": "FAILURE",
   "metadata": {
     "is_synthetic": true,
-    "scenario": "repeated_failed_authentication",
-    "attempt_number": 1,
-    "error_code": "AuthFailure.IncorrectPassword"
+    "scenario": "repeated_failed_authentication"
   },
   "ingested_at": "2026-10-09T16:05:01.123456+00:00"
-}
-```
-
-#### Error Responses:
-- **409 Conflict** (Duplicate event ID):
-```json
-{
-  "detail": "Security event with ID 'syn-auth-fail-a1b2c3d4e5f6' already exists."
-}
-```
-- **422 Unprocessable Entity** (Validation failure):
-```json
-{
-  "detail": [
-    {
-      "type": "missing",
-      "loc": ["body", "event_type"],
-      "msg": "Field required"
-    }
-  ]
 }
 ```
 
@@ -115,8 +71,8 @@ Ingests, validates, and persists a canonical security event. Enforces idempotenc
 Returns a paginated list of security events ordered by ingestion time (newest first).
 
 - **Query Parameters**:
-  - `limit` (integer, optional, default: 20, min: 1, max: 100): Number of events to return.
-  - `offset` (integer, optional, default: 0, min: 0): Pagination offset.
+  - `limit` (integer, default: 20, min: 1, max: 100): Page limit.
+  - `offset` (integer, default: 0, min: 0): Page offset.
   - `event_type` (string, optional): Filter by event classification.
   - `source` (string, optional): Filter by origin source.
   - `outcome` (string, optional): Filter by result status.
@@ -125,11 +81,6 @@ Returns a paginated list of security events ordered by ingestion time (newest fi
 
 ### `GET /api/v1/events/{event_id}`
 Retrieves a single security event by its unique string identifier.
-
-- **Path Parameters**:
-  - `event_id` (string, required): Unique event ID.
-- **Response (200 OK)**: Single `EventResponse` object.
-- **Error (404 Not Found)**: Event ID not found.
 
 ---
 
@@ -141,21 +92,11 @@ Base path: `/api/v1/detections`
 Executes detection rules across stored events within a bounded time window, correlates indicators, deduplicates against open alerts, and persists newly discovered or updated alerts.
 
 - **Request Body (optional JSON)**:
-  - `limit` (integer, optional, default: 100, max: 500): Maximum stored events to evaluate in this batch.
-  - `lookback_minutes` (integer, optional, default: 60, max: 1440): Temporal lookback boundary in minutes.
-  - `real_only` (boolean, optional, default: false): If true, ignores synthetic events.
-  - `auth_threshold` (integer, optional, default: 5): Override threshold for repeated authentication failures.
-  - `auth_window_minutes` (integer, optional, default: 15): Override sliding window in minutes for auth failures.
-
-#### Request Example:
-```json
-{
-  "limit": 100,
-  "lookback_minutes": 60,
-  "auth_threshold": 5,
-  "auth_window_minutes": 15
-}
-```
+  - `limit` (integer, default: 100, max: 500): Events to evaluate.
+  - `lookback_minutes` (integer, default: 60, max: 1440): Lookback boundary.
+  - `real_only` (boolean, default: false): Ignore synthetic events if true.
+  - `auth_threshold` (integer, optional): Override threshold for auth failures.
+  - `auth_window_minutes` (integer, optional): Override sliding window for auth failures.
 
 #### Response (200 OK):
 ```json
@@ -178,11 +119,52 @@ Base path: `/api/v1/alerts`
 Retrieves a paginated list of security alerts ordered newest first, with optional filtering.
 
 - **Query Parameters**:
-  - `limit` (integer, optional, default: 20, min: 1, max: 100): Page limit.
-  - `offset` (integer, optional, default: 0, min: 0): Page offset.
-  - `severity` (string, optional): Filter by severity (`INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
-  - `rule_id` (string, optional): Filter by rule identifier (e.g. `AUTH-001`, `IAM-001`, `STORAGE-001`).
-  - `status` (string, optional): Filter by lifecycle state (`OPEN`, `INVESTIGATING`, `RESOLVED`, `FALSE_POSITIVE`).
+  - `limit` (integer, default: 20, min: 1, max: 100)
+  - `offset` (integer, default: 0, min: 0)
+  - `severity` (string, optional): `INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+  - `rule_id` (string, optional): e.g. `AUTH-001`, `IAM-001`, `STORAGE-001`
+  - `status` (string, optional): `OPEN`, `INVESTIGATING`, `RESOLVED`, `FALSE_POSITIVE`
+
+---
+
+### `GET /api/v1/alerts/{alert_id}`
+Retrieves a single alert by its external identifier.
+
+---
+
+## 5. Security Incidents Endpoints
+
+Base path: `/api/v1/incidents`
+
+### `POST /api/v1/incidents/correlate`
+Executes event correlation across stored alerts, grouping related findings into incident clusters and appending audit trail logs.
+
+- **Request Body (optional JSON)**:
+  - `lookback_minutes` (integer, default: 120, max: 1440): Temporal lookback boundary.
+  - `window_minutes` (integer, default: 60, max: 240): Maximum span between correlated alerts.
+  - `status_filter` (string, default: "OPEN"): Target alert status to correlate.
+
+#### Response (200 OK):
+```json
+{
+  "alerts_evaluated": 9,
+  "incidents_created": 2,
+  "incidents_updated": 0,
+  "errors": []
+}
+```
+
+---
+
+### `GET /api/v1/incidents`
+Returns a paginated list of security incidents with optional filtering.
+
+- **Query Parameters**:
+  - `limit` (integer, default: 20, min: 1, max: 100)
+  - `offset` (integer, default: 0, min: 0)
+  - `status` (string, optional): `OPEN`, `INVESTIGATING`, `RESOLVED`, `FALSE_POSITIVE`
+  - `severity` (string, optional): `INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+  - `assigned_analyst` (string, optional): Filter by assigned analyst
 
 #### Response (200 OK):
 ```json
@@ -190,42 +172,26 @@ Retrieves a paginated list of security alerts ordered newest first, with optiona
   "items": [
     {
       "id": 1,
-      "alert_id": "alt-8ef201c37b4a",
-      "fingerprint": "AUTH-001:actor:arn:aws:iam::112233445566:user/analyst-bob|ip:203.0.113.195",
-      "rule_id": "AUTH-001",
-      "rule_name": "Repeated Authentication Failures",
-      "severity": "HIGH",
-      "risk_score": 85,
-      "confidence": 0.9,
-      "title": "Repeated Authentication Failures (5 attempts)",
-      "description": "Observed 5 failed authentication attempts within a 15-minute detection window.",
+      "incident_id": "inc-4a7b2c9d1e3f",
+      "title": "Suspicious Activity Cluster on Principal arn:aws:iam::112233445566:user/compromised-contractor",
+      "summary": "Correlated incident involving 2 alerts across 2 distinct detection rules: IAM-001, STORAGE-001.",
+      "severity": "CRITICAL",
+      "risk_score": 100,
       "status": "OPEN",
-      "related_event_ids": [
-        "syn-auth-fail-83aee710857b",
-        "syn-auth-fail-d078b43908fb"
+      "correlation_fingerprint": "INC:actor:112233445566:arn:aws:iam::112233445566:user/compromised-contractor",
+      "related_alert_ids": ["alt-123", "alt-456"],
+      "related_event_ids": ["evt-101", "evt-102"],
+      "correlation_reasons": [
+        "Linked by shared actor principal: arn:aws:iam::112233445566:user/compromised-contractor",
+        "Target cloud account scope: 112233445566",
+        "Temporal clustering within 60-minute correlation window"
       ],
-      "evidence": {
-        "failure_count": 5,
-        "threshold": 5,
-        "window_minutes": 15,
-        "actor": "arn:aws:iam::112233445566:user/analyst-bob",
-        "source_ip": "203.0.113.195",
-        "account_id": "112233445566",
-        "scoring_breakdown": {
-          "base_score": 45,
-          "modifiers": {
-            "volume_adjustment": 25,
-            "root_target": 15
-          },
-          "final_score": 85,
-          "severity": "HIGH"
-        }
-      },
-      "first_seen": "2026-10-09T16:10:15+00:00",
-      "last_seen": "2026-10-09T16:11:03+00:00",
-      "occurrence_count": 5,
-      "created_at": "2026-10-09T16:12:00+00:00",
-      "updated_at": "2026-10-09T16:12:00+00:00"
+      "first_seen": "2026-10-09T16:10:00+00:00",
+      "last_seen": "2026-10-09T16:15:00+00:00",
+      "assigned_analyst": null,
+      "resolution_reason": null,
+      "created_at": "2026-10-09T16:20:00+00:00",
+      "updated_at": "2026-10-09T16:20:00+00:00"
     }
   ],
   "total": 1,
@@ -236,54 +202,93 @@ Retrieves a paginated list of security alerts ordered newest first, with optiona
 
 ---
 
-### `GET /api/v1/alerts/{alert_id}`
-Retrieves a single alert by its external identifier.
+### `GET /api/v1/incidents/{incident_id}`
+Retrieves complete incident details including its chronological audit history.
 
-- **Path Parameters**:
-  - `alert_id` (string, required): External alert ID (e.g. `alt-8ef201c37b4a`).
-- **Response (200 OK)**: Single `AlertResponse` object.
-- **Error (404 Not Found)**: Alert ID not found.
+#### Response (200 OK):
+```json
+{
+  "id": 1,
+  "incident_id": "inc-4a7b2c9d1e3f",
+  "title": "Suspicious Activity Cluster on Principal arn:aws:iam::112233445566:user/compromised-contractor",
+  "summary": "Correlated incident involving 2 alerts across 2 distinct detection rules.",
+  "severity": "CRITICAL",
+  "risk_score": 100,
+  "status": "INVESTIGATING",
+  "correlation_fingerprint": "INC:actor:112233445566:arn:aws:iam::112233445566:user/compromised-contractor",
+  "related_alert_ids": ["alt-123", "alt-456"],
+  "related_event_ids": ["evt-101", "evt-102"],
+  "correlation_reasons": ["Linked by shared actor principal: user/compromised-contractor"],
+  "first_seen": "2026-10-09T16:10:00+00:00",
+  "last_seen": "2026-10-09T16:15:00+00:00",
+  "assigned_analyst": "alice@cloudsentinel.io",
+  "resolution_reason": null,
+  "created_at": "2026-10-09T16:20:00+00:00",
+  "updated_at": "2026-10-09T16:25:00+00:00",
+  "audits": [
+    {
+      "id": 1,
+      "incident_id": "inc-4a7b2c9d1e3f",
+      "action": "CREATED",
+      "previous_state": null,
+      "new_state": {"status": "OPEN", "severity": "CRITICAL"},
+      "actor": "correlation_engine",
+      "reason": "Created incident from 2 correlated alert(s)",
+      "created_at": "2026-10-09T16:20:00+00:00"
+    },
+    {
+      "id": 2,
+      "incident_id": "inc-4a7b2c9d1e3f",
+      "action": "STATUS_CHANGED",
+      "previous_state": {"status": "OPEN"},
+      "new_state": {"status": "INVESTIGATING"},
+      "actor": "alice@cloudsentinel.io",
+      "reason": "Initiated triaging",
+      "created_at": "2026-10-09T16:25:00+00:00"
+    }
+  ]
+}
+```
 
 ---
 
-## 5. Command Line Usage Examples
+### `GET /api/v1/incidents/{incident_id}/alerts`
+Retrieves all underlying `SecurityAlert` objects correlated to an incident.
 
-### cURL
-```bash
-# Ingest an event
-curl -X POST http://127.0.0.1:8000/api/v1/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event_id": "evt-curl-test-01",
-    "source": "simulator",
-    "event_type": "Authentication",
-    "timestamp": "2026-10-09T16:00:00Z",
-    "actor": "arn:aws:iam::123456789012:user/alice",
-    "outcome": "FAILURE",
-    "metadata": {"is_synthetic": true}
-  }'
+- **Response (200 OK)**: Array of `AlertResponse` objects.
 
-# Trigger threat detection run
-curl -X POST http://127.0.0.1:8000/api/v1/detections/run \
-  -H "Content-Type: application/json" \
-  -d '{"lookback_minutes": 120}'
+---
 
-# Query active critical alerts
-curl "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL&status=OPEN"
+### `PATCH /api/v1/incidents/{incident_id}`
+Updates incident status, assignment, or resolution details.
+Enforces the mandatory resolution policy: transitioning to `RESOLVED` or `FALSE_POSITIVE` **requires** a non-empty `resolution_reason`.
 
-# Get alert details by ID
-curl "http://127.0.0.1:8000/api/v1/alerts/alt-8ef201c37b4a"
+- **Request Body**:
+```json
+{
+  "status": "RESOLVED",
+  "resolution_reason": "Revoked unauthorized AdministratorAccess and rotated credentials.",
+  "change_reason": "Remediation verified by SecOps"
+}
 ```
+
+---
+
+## 6. Command Line Usage Examples
 
 ### PowerShell
 ```powershell
-# Trigger detection run
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/detections/run" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
+# 1. Trigger correlation run
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/correlate" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
 
-# Query all high & critical alerts
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts?severity=HIGH"
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL"
+# 2. Query open incidents
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents?status=OPEN"
 
-# Query single alert
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts/<alert_id>"
+# 3. Assign and investigate an incident
+$body = @{ status = "INVESTIGATING"; assigned_analyst = "analyst@company.com" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/<incident_id>" -Method Patch -ContentType "application/json" -Body $body
+
+# 4. Resolve an incident (resolution_reason required)
+$resolveBody = @{ status = "RESOLVED"; resolution_reason = "Revoked malicious access keys" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/<incident_id>" -Method Patch -ContentType "application/json" -Body $resolveBody
 ```

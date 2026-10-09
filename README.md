@@ -9,12 +9,14 @@ CloudSentinel is designed with a defense-in-depth security approach:
 - **Deterministic Detection Engine**: Evaluates ingested events against modular, rule-based Python detections to identify suspicious behaviors (e.g., repeated authentication bursts, administrative IAM privilege grants, S3 public access block deletions).
 - **Explainable Risk Scoring**: Deterministically calculates 0-100 risk scores and assigns explicit severity bands (`INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) with audit trails.
 - **Deduplicated Alert Store**: Persists actionable alerts with stable fingerprints to prevent alert fatigue and redundant duplicate records across re-evaluation runs.
+- **Context-Aware Event Correlation**: Clusters related security alerts across shared cloud identity (actor ARN), originating IP, target cloud resources, and temporal proximity into high-context **Security Incidents**.
+- **Incident Lifecycle & Audit History**: Provides lifecycle state management (`OPEN`, `INVESTIGATING`, `RESOLVED`, `FALSE_POSITIVE`) with mandatory resolution reasons and an append-only audit trail.
 - **Analyst Dashboard**: Modern React interface providing visibility into events, alerts, and active security incidents.
 - **AI-Assisted Investigation**: Leverages LLMs to provide context summaries, MITRE ATT&CK mapping, and structured remediation recommendations (without destructive automated actions).
 
 ---
 
-## Detection Rules Catalog (Initial Phase)
+## Detection Rules Catalog
 
 | Rule ID | Rule Name | Target Classification | Severity Band | Description |
 | :--- | :--- | :--- | :--- | :--- |
@@ -31,24 +33,21 @@ CloudSentinel is designed with a defense-in-depth security approach:
 CloudSentinel/
 ├── backend/            # FastAPI REST API, Detection Engine, & Ingestion
 │   ├── app/
-│   │   ├── api/v1/     # REST routers: events, detections, alerts
+│   │   ├── api/v1/     # REST routers: events, detections, alerts, incidents
 │   │   ├── core/       # Configuration & settings
+│   │   ├── correlation/# Incident correlation engine, risk aggregator, service
 │   │   ├── db/         # Async database sessions & Base
 │   │   ├── detection/  # Threat detection engine, risk model, & rules
-│   │   │   ├── rules/  # Modular rule definitions (AUTH, IAM, STORAGE, BENIGN)
-│   │   │   ├── engine.py
-│   │   │   ├── risk_model.py
-│   │   │   └── service.py
-│   │   ├── models/     # SQLAlchemy models: SecurityEvent, SecurityAlert
-│   │   ├── schemas/    # Pydantic schemas: EventCreate, AlertResponse, etc.
+│   │   ├── models/     # SQLAlchemy models: SecurityEvent, SecurityAlert, Incident, IncidentAudit
+│   │   ├── schemas/    # Pydantic schemas: EventCreate, AlertResponse, IncidentResponse, etc.
 │   │   └── services/   # Business services
-│   ├── tests/          # Automated backend test suite (22 tests)
+│   ├── tests/          # Automated backend test suite (33 passing tests)
 │   ├── pytest.ini      # Test configuration
 │   └── requirements.txt
 ├── detection/          # Standalone detection rules & testing artifacts
 ├── frontend/           # React + TypeScript security dashboard
 ├── database/           # PostgreSQL migrations & schemas (Alembic)
-│   └── migrations/     # Version-controlled schema migrations
+│   └── migrations/     # Version-controlled schema migrations (001, 002, 003)
 ├── simulator/          # Attack simulation & synthetic event generation
 │   ├── scenarios/      # Reproducible test scenarios and JSON fixtures
 │   ├── generator.py    # Scenario event generation engine
@@ -113,7 +112,7 @@ Verify service:
 - Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - API Contract: [docs/api-contract.md](docs/api-contract.md)
 
-### 5. Generate Events & Run Threat Detections
+### 5. Ingest Events, Run Detections & Correlate Incidents
 From the project root:
 ```bash
 # 1. Ingest synthetic security events across scenarios
@@ -122,8 +121,11 @@ python -m simulator.runner --scenario all
 # 2. Trigger threat detection evaluation run (PowerShell)
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/detections/run" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
 
-# 3. Retrieve correlated security alerts
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts"
+# 3. Correlate alerts into incidents
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/correlate" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120, "window_minutes": 60}'
+
+# 4. Query active security incidents
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents?status=OPEN"
 ```
 
 ### 6. Run Automated Tests
@@ -137,5 +139,5 @@ pytest -v
 ## Security Principles
 - **Principle of Least Privilege**: Local services bind only to `127.0.0.1` and AWS IAM roles adhere strictly to least-privilege policies.
 - **Zero Hardcoded Secrets**: Secrets and configurations are loaded via environment variables and excluded from source control.
-- **Deterministic First**: Threat detections run on deterministic rules with audit trails. AI assists with investigation and triage, never replacing rules. No automated destructive actions are executed.
-- **Idempotent Ingestion & Deduplicated Alerting**: Event IDs are validated for uniqueness and alerts are grouped by stable fingerprints to prevent alert storms.
+- **Deterministic First**: Detections and incident correlations operate deterministically with verifiable audit trails. AI assists with investigation and triage, never replacing rules.
+- **Audit Logging**: Incident status transitions and analyst assignments produce append-only audit ledger records. Transitioning to `RESOLVED` or `FALSE_POSITIVE` strictly requires an explicit resolution reason.
