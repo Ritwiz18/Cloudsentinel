@@ -1,0 +1,112 @@
+[
+  {
+    "event_id": "syn-auth-fail-dfae720dd7c8",
+    "source": "simulator",
+    "event_type": "Authentication",
+    "timestamp": "2026-10-09T15:57:32.624526+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/analyst-bob",
+    "source_ip": "203.0.113.195",
+    "resource": "arn:aws:iam::112233445566:root",
+    "outcome": "FAILURE",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "repeated_failed_authentication",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "attempt_number": 1,
+      "error_code": "AuthFailure.IncorrectPassword",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "mfa_used": false
+    }
+  },
+  {
+    "event_id": "syn-auth-fail-88f683b78798",
+    "source": "simulator",
+    "event_type": "Authentication",
+    "timestamp": "2026-10-09T15:57:44.624526+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/analyst-bob",
+    "source_ip": "203.0.113.195",
+    "resource": "arn:aws:iam::112233445566:root",
+    "outcome": "FAILURE",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "repeated_failed_authentication",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "attempt_number": 2,
+      "error_code": "AuthFailure.IncorrectPassword",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "mfa_used": false
+    }
+  },
+  {
+    "event_id": "syn-auth-fail-beee20695aa9",
+    "source": "simulator",
+    "event_type": "Authentication",
+    "timestamp": "2026-10-09T15:57:56.624526+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/analyst-bob",
+    "source_ip": "203.0.113.195",
+    "resource": "arn:aws:iam::112233445566:root",
+    "outcome": "FAILURE",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "repeated_failed_authentication",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "attempt_number": 3,
+      "error_code": "AuthFailure.IncorrectPassword",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "mfa_used": false
+    }
+  },
+  {
+    "event_id": "syn-auth-fail-065b7f58f6f7",
+    "source": "simulator",
+    "event_type": "Authentication",
+    "timestamp": "2026-10-09T15:58:08.624526+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/analyst-bob",
+    "source_ip": "203.0.113.195",
+    "resource": "arn:aws:iam::112233445566:root",
+    "outcome": "FAILURE",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "repeated_failed_authentication",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "attempt_number": 4,
+      "error_code": "AuthFailure.IncorrectPassword",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "mfa_used": false
+    }
+  },
+  {
+    "event_id": "syn-auth-fail-aa5664cd4e0f",
+    "source": "simulator",
+    "event_type": "Authentication",
+    "timestamp": "2026-10-09T15:58:20.624526+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/analyst-bob",
+    "source_ip": "203.0.113.195",
+    "resource": "arn:aws:iam::112233445566:root",
+    "outcome": "FAILURE",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "repeated_failed_authentication",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "attempt_number": 5,
+      "error_code": "AuthFailure.IncorrectPassword",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "mfa_used": false
+    }
+  }
+]

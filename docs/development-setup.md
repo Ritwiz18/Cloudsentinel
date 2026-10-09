@@ -37,7 +37,7 @@ Verify the container is running and healthy:
 docker compose ps
 ```
 
-The database port is bound to `127.0.0.1:5432` to avoid exposing it to your local network.
+The database port is bound strictly to `127.0.0.1:5432` to avoid exposing it to your local network.
 
 ---
 
@@ -46,7 +46,7 @@ The database port is bound to `127.0.0.1:5432` to avoid exposing it to your loca
 ```bash
 cd backend
 
-# Create virtual environment
+# Create virtual environment (if not already created)
 python -m venv .venv
 
 # Activate virtual environment
@@ -62,7 +62,19 @@ pip install -r requirements.txt
 
 ---
 
-## Step 4: Run Backend Service
+## Step 4: Apply Database Migrations (Alembic)
+
+From the project root with your virtual environment active:
+
+```bash
+alembic upgrade head
+```
+
+This establishes the `security_events` table and associated indexes in PostgreSQL.
+
+---
+
+## Step 5: Run Backend Service
 
 From the `backend` directory with `.venv` active:
 
@@ -73,13 +85,44 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 Verify the service:
 - Health endpoint: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 - Interactive API documentation (Swagger UI): [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- OpenAPI JSON: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
 
 ---
 
-## Step 5: Run Automated Tests
+## Step 6: Generate & Ingest Synthetic Security Events
 
-Execute backend tests using pytest:
+From the project root:
 
 ```bash
+# Dry run to preview generated events in JSON format:
+python -m simulator.runner --scenario auth --dry-run
+
+# Dispatch events to the live API endpoint:
+# 1. Repeated failed authentication attempts
+python -m simulator.runner --scenario auth
+
+# 2. Suspicious IAM privilege escalations
+python -m simulator.runner --scenario iam
+
+# 3. Risky storage configurations
+python -m simulator.runner --scenario storage
+
+# 4. Normal benign cloud operations
+python -m simulator.runner --scenario benign
+
+# 5. All scenarios in batch
+python -m simulator.runner --scenario all
+```
+
+---
+
+## Step 7: Run Automated Tests
+
+Execute backend tests using pytest from the `backend` directory:
+
+```bash
+cd backend
 pytest -v
 ```
+
+All tests execute against an isolated in-memory test database and do not mutate your local development database.
