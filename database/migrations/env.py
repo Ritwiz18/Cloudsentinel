@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from app.core.config import settings
 from app.db.session import Base
 from app.models.event import SecurityEvent  # noqa: F401
+from app.models.alert import SecurityAlert  # noqa: F401
 
 config = context.config
 

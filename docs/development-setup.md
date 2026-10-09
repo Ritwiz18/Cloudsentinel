@@ -70,7 +70,7 @@ From the project root with your virtual environment active:
 alembic upgrade head
 ```
 
-This establishes the `security_events` table and associated indexes in PostgreSQL.
+This establishes the `security_events` and `security_alerts` tables with optimized indexes in PostgreSQL.
 
 ---
 
@@ -94,31 +94,41 @@ Verify the service:
 From the project root:
 
 ```bash
-# Dry run to preview generated events in JSON format:
+# Preview synthetic events (dry run):
 python -m simulator.runner --scenario auth --dry-run
 
-# Dispatch events to the live API endpoint:
-# 1. Repeated failed authentication attempts
-python -m simulator.runner --scenario auth
-
-# 2. Suspicious IAM privilege escalations
-python -m simulator.runner --scenario iam
-
-# 3. Risky storage configurations
-python -m simulator.runner --scenario storage
-
-# 4. Normal benign cloud operations
-python -m simulator.runner --scenario benign
-
-# 5. All scenarios in batch
+# Dispatch all synthetic scenarios to the live API:
 python -m simulator.runner --scenario all
 ```
 
 ---
 
-## Step 7: Run Automated Tests
+## Step 7: Run Threat Detection Engine & Query Alerts
 
-Execute backend tests using pytest from the `backend` directory:
+Once events are ingested into the database, trigger the detection evaluation run:
+
+```powershell
+# Run detections on stored events (PowerShell)
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/detections/run" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
+
+# List active alerts
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts"
+
+# Filter by severity
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL"
+```
+
+Via cURL:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/detections/run -H "Content-Type: application/json" -d '{"lookback_minutes": 120}'
+curl "http://127.0.0.1:8000/api/v1/alerts?severity=CRITICAL"
+```
+
+---
+
+## Step 8: Run Automated Tests
+
+Execute the complete backend test suite using pytest from the `backend` directory:
 
 ```bash
 cd backend

@@ -6,10 +6,22 @@ CloudSentinel is an AI-powered cloud security, threat detection, and incident re
 
 CloudSentinel is designed with a defense-in-depth security approach:
 - **Event Ingestion**: Normalizes simulated and real AWS CloudTrail/security events into a canonical security schema with ACID PostgreSQL persistence and idempotency guarantees.
-- **Deterministic Detection Engine**: Executes configurable, rule-based Python detections to identify suspicious behaviors (e.g., unauthorized privilege escalations, root account activity, anomalous network egress).
-- **Incident Correlation**: Correlates related alerts into prioritized incidents with severity scoring.
+- **Deterministic Detection Engine**: Evaluates ingested events against modular, rule-based Python detections to identify suspicious behaviors (e.g., repeated authentication bursts, administrative IAM privilege grants, S3 public access block deletions).
+- **Explainable Risk Scoring**: Deterministically calculates 0-100 risk scores and assigns explicit severity bands (`INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) with audit trails.
+- **Deduplicated Alert Store**: Persists actionable alerts with stable fingerprints to prevent alert fatigue and redundant duplicate records across re-evaluation runs.
 - **Analyst Dashboard**: Modern React interface providing visibility into events, alerts, and active security incidents.
 - **AI-Assisted Investigation**: Leverages LLMs to provide context summaries, MITRE ATT&CK mapping, and structured remediation recommendations (without destructive automated actions).
+
+---
+
+## Detection Rules Catalog (Initial Phase)
+
+| Rule ID | Rule Name | Target Classification | Severity Band | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `AUTH-001` | Repeated Authentication Failures | `Authentication` / `FAILURE` | `MEDIUM` - `HIGH` | Identifies clustered failed authentication attempts for an actor/IP within a sliding time window. |
+| `IAM-001` | Risky IAM Policy Modification | `IAMPolicyChange` / `SUCCESS` | `HIGH` - `CRITICAL` | Detects `AdministratorAccess` policy attachments and wildcard `*` assume-role trust relationships. |
+| `STORAGE-001` | Risky Storage Configuration Change | `StorageConfiguration` / `SUCCESS` | `HIGH` - `CRITICAL` | Detects S3 Block Public Access deletion and `public-read` bucket ACL assignments. |
+| `BENIGN-001` | Benign Activity Allowlist Filter | Read-only APIs (`EC2Read`, `StorageRead`, `STSRead`) | None | Explicitly prevents routine queries (`DescribeInstances`, `ListBuckets`, `GetCallerIdentity`) from generating false alerts. |
 
 ---
 
@@ -17,12 +29,23 @@ CloudSentinel is designed with a defense-in-depth security approach:
 
 ```text
 CloudSentinel/
-├── backend/            # FastAPI REST API & Ingestion engine
-│   ├── app/            # Application source (core, db, models, schemas, services, api)
-│   ├── tests/          # Automated backend test suite
+├── backend/            # FastAPI REST API, Detection Engine, & Ingestion
+│   ├── app/
+│   │   ├── api/v1/     # REST routers: events, detections, alerts
+│   │   ├── core/       # Configuration & settings
+│   │   ├── db/         # Async database sessions & Base
+│   │   ├── detection/  # Threat detection engine, risk model, & rules
+│   │   │   ├── rules/  # Modular rule definitions (AUTH, IAM, STORAGE, BENIGN)
+│   │   │   ├── engine.py
+│   │   │   ├── risk_model.py
+│   │   │   └── service.py
+│   │   ├── models/     # SQLAlchemy models: SecurityEvent, SecurityAlert
+│   │   ├── schemas/    # Pydantic schemas: EventCreate, AlertResponse, etc.
+│   │   └── services/   # Business services
+│   ├── tests/          # Automated backend test suite (22 tests)
 │   ├── pytest.ini      # Test configuration
 │   └── requirements.txt
-├── detection/          # Deterministic detection rules & rule tests
+├── detection/          # Standalone detection rules & testing artifacts
 ├── frontend/           # React + TypeScript security dashboard
 ├── database/           # PostgreSQL migrations & schemas (Alembic)
 │   └── migrations/     # Version-controlled schema migrations
@@ -88,16 +111,19 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 Verify service:
 - Health check: `curl http://127.0.0.1:8000/health`
 - Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- API Contract Documentation: [docs/api-contract.md](docs/api-contract.md)
+- API Contract: [docs/api-contract.md](docs/api-contract.md)
 
-### 5. Generate Synthetic Events
+### 5. Generate Events & Run Threat Detections
 From the project root:
 ```bash
-# Preview synthetic events (dry run):
-python -m simulator.runner --scenario auth --dry-run
-
-# Dispatch events to the API:
+# 1. Ingest synthetic security events across scenarios
 python -m simulator.runner --scenario all
+
+# 2. Trigger threat detection evaluation run (PowerShell)
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/detections/run" -Method Post -ContentType "application/json" -Body '{"lookback_minutes": 120}'
+
+# 3. Retrieve correlated security alerts
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/alerts"
 ```
 
 ### 6. Run Automated Tests
@@ -111,5 +137,5 @@ pytest -v
 ## Security Principles
 - **Principle of Least Privilege**: Local services bind only to `127.0.0.1` and AWS IAM roles adhere strictly to least-privilege policies.
 - **Zero Hardcoded Secrets**: Secrets and configurations are loaded via environment variables and excluded from source control.
-- **Deterministic First**: AI assists with enrichment and triage, never replacing deterministic detection rules. No automated destructive actions are executed.
-- **Idempotent Ingestion**: Event IDs are validated for uniqueness to prevent alert storms and duplicate processing.
+- **Deterministic First**: Threat detections run on deterministic rules with audit trails. AI assists with investigation and triage, never replacing rules. No automated destructive actions are executed.
+- **Idempotent Ingestion & Deduplicated Alerting**: Event IDs are validated for uniqueness and alerts are grouped by stable fingerprints to prevent alert storms.

@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 from fastapi import FastAPI
 
+from app.api.v1.alerts import router as alerts_router
+from app.api.v1.detections import router as detections_router
 from app.api.v1.events import router as events_router
 from app.db.session import Base, engine
 
@@ -26,6 +28,8 @@ app = FastAPI(
 
 # Register API v1 routes
 app.include_router(events_router, prefix="/api/v1")
+app.include_router(detections_router, prefix="/api/v1")
+app.include_router(alerts_router, prefix="/api/v1")
 
 
 @app.get("/health", summary="Health check endpoint", tags=["System"])
