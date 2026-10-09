@@ -82,6 +82,7 @@ class RiskyStorageConfigRule(BaseRule):
                 "new_state": new_state,
                 "actor": event.actor,
                 "source_ip": event.source_ip,
+                "account_id": event.account_id,
                 "scoring_breakdown": breakdown,
             },
             first_seen=event.timestamp,

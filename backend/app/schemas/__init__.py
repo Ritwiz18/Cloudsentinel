@@ -11,6 +11,15 @@ from app.schemas.alert import (
     DetectionRunRequest,
     DetectionRunResponse,
 )
+from app.schemas.incident import (
+    IncidentResponse,
+    IncidentDetailResponse,
+    IncidentListResponse,
+    IncidentAuditResponse,
+    IncidentUpdateRequest,
+    CorrelationRunRequest,
+    CorrelationRunResponse,
+)
 
 __all__ = [
     "EventCreate",
@@ -20,4 +29,11 @@ __all__ = [
     "AlertListResponse",
     "DetectionRunRequest",
     "DetectionRunResponse",
+    "IncidentResponse",
+    "IncidentDetailResponse",
+    "IncidentListResponse",
+    "IncidentAuditResponse",
+    "IncidentUpdateRequest",
+    "CorrelationRunRequest",
+    "CorrelationRunResponse",
 ]
