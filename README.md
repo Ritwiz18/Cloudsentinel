@@ -128,10 +128,23 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents/correlate" -Metho
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/incidents?status=OPEN"
 ```
 
-### 6. Run Automated Tests
+### 6. Launch the Frontend Analyst Dashboard
 ```bash
+cd frontend
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser to view the SOC dashboard.
+
+### 7. Run Automated Tests
+```bash
+# Backend pytest suite (33 passing tests)
 cd backend
 pytest -v
+
+# Frontend vitest suite (15 passing tests)
+cd ../frontend
+npm test
 ```
 
 ---

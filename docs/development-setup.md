@@ -137,3 +137,54 @@ pytest -v
 ```
 
 All 33 tests execute against an isolated in-memory test database and do not mutate your local development database.
+
+---
+
+## Step 9: Launch the Frontend Analyst Dashboard
+
+The CloudSentinel Analyst Dashboard is a React + TypeScript single-page application built on Vite.
+
+### 1. Install Frontend Dependencies
+```bash
+cd frontend
+npm install
+```
+
+### 2. Configure Environment (Optional)
+By default, the dashboard connects to `http://localhost:8000`. To customize the backend URL, create a `.env` file in `frontend/`:
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+### 3. Start Frontend Development Server
+```bash
+npm run dev
+```
+The dashboard will be available at `http://localhost:5173`.
+
+### 4. Run Frontend Automated Tests & Build
+```bash
+# Run unit and integration tests (15 passing tests)
+npm test
+
+# Run linter
+npm run lint
+
+# Production build and type-checking
+npm run build
+```
+
+### 5. Full End-to-End Workflow in Dashboard
+1. Ensure PostgreSQL and FastAPI backend are running on `http://localhost:8000`.
+2. Start the Vite dashboard on `http://localhost:5173`.
+3. In terminal, dispatch synthetic security scenarios:
+   ```bash
+   python -m simulator.runner --scenario all
+   ```
+4. In the dashboard:
+   - **Overview**: View live counts of Events, Open Incidents, Open Alerts, and Severity Distribution.
+   - **Security Events**: Inspect raw canonical payloads, timestamps, actors, and synthetic tags.
+   - **Operations & Tools**: Click **Execute Threat Detection** to evaluate rules and create alerts.
+   - **Alerts**: Review triggered rules, risk scores, diagnostic evidence, and related events.
+   - **Operations & Tools**: Click **Execute Incident Correlation** to cluster alerts by actor/IP/resource.
+   - **Incidents**: Click an incident to open the investigation drawer, review correlated alerts, and update lifecycle status (requiring resolution reason for `RESOLVED` / `FALSE_POSITIVE`).
