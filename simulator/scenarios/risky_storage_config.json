@@ -1,0 +1,46 @@
+[
+  {
+    "event_id": "syn-s3-bpa-0941ee5a7f1d",
+    "source": "simulator",
+    "event_type": "StorageConfiguration",
+    "timestamp": "2026-10-09T16:04:32.627170+00:00",
+    "account_id": "112233445566",
+    "region": "us-west-2",
+    "actor": "arn:aws:iam::112233445566:user/devops-lead",
+    "source_ip": "198.51.100.12",
+    "resource": "arn:aws:s3:::cloudsentinel-customer-pii-vault",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "risky_storage_block_public_access_removed",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "DeletePublicAccessBlock",
+      "bucket_name": "cloudsentinel-customer-pii-vault",
+      "previous_state": "AllPublicBlocksEnabled",
+      "new_state": "BlocksDisabled",
+      "risk_level": "CRITICAL"
+    }
+  },
+  {
+    "event_id": "syn-s3-acl-bedd3067f53a",
+    "source": "simulator",
+    "event_type": "StorageAccess",
+    "timestamp": "2026-10-09T16:04:52.627170+00:00",
+    "account_id": "112233445566",
+    "region": "us-west-2",
+    "actor": "arn:aws:iam::112233445566:user/devops-lead",
+    "source_ip": "198.51.100.12",
+    "resource": "arn:aws:s3:::cloudsentinel-customer-pii-vault",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "risky_storage_public_read_acl",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "PutBucketAcl",
+      "acl": "public-read",
+      "risk_level": "HIGH"
+    }
+  }
+]

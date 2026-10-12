@@ -1,0 +1,47 @@
+[
+  {
+    "event_id": "syn-iam-policy-00c3bbc89fe7",
+    "source": "simulator",
+    "event_type": "IAMPolicyChange",
+    "timestamp": "2026-10-09T16:02:32.626136+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/compromised-contractor",
+    "source_ip": "198.51.100.88",
+    "resource": "arn:aws:iam::112233445566:policy/AdministratorAccess",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "suspicious_iam_policy_change",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "AttachUserPolicy",
+      "policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess",
+      "target_user": "compromised-contractor",
+      "severity_indicator": "HIGH"
+    }
+  },
+  {
+    "event_id": "syn-iam-role-e929b91429e7",
+    "source": "simulator",
+    "event_type": "IAMPolicyChange",
+    "timestamp": "2026-10-09T16:03:17.626136+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:user/compromised-contractor",
+    "source_ip": "198.51.100.88",
+    "resource": "arn:aws:iam::112233445566:role/CrossAccountAccessRole",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "suspicious_iam_trust_relationship_update",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "UpdateAssumeRolePolicy",
+      "trusted_entities": [
+        "*"
+      ],
+      "severity_indicator": "CRITICAL"
+    }
+  }
+]

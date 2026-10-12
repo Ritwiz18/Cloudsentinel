@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudsentinel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloudsentinel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudsentinel_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudsentinel_db}
+    ports:
+      # Bind exclusively to 127.0.0.1 (loopback) to prevent public exposure
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudsentinel_user} -d ${POSTGRES_DB:-cloudsentinel_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudsentinel_internal
+
+volumes:
+  postgres_data:
+    name: cloudsentinel_postgres_data
+
+networks:
+  cloudsentinel_internal:
+    name: cloudsentinel_internal
+    driver: bridge

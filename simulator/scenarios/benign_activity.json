@@ -1,0 +1,82 @@
+[
+  {
+    "event_id": "syn-benign-16bcf1a2cd72",
+    "source": "simulator",
+    "event_type": "EC2Read",
+    "timestamp": "2026-10-09T15:52:32.627869+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:role/InternalMonitoringRole",
+    "source_ip": "10.0.1.15",
+    "resource": "arn:aws:ec2:us-east-1:112233445566:instance/i-0a1b2c3d4e5f6g7h8",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "normal_benign_cloud_activity",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "DescribeInstances",
+      "routine_job": "cloudwatch-metrics-collector"
+    }
+  },
+  {
+    "event_id": "syn-benign-cb59b4400108",
+    "source": "simulator",
+    "event_type": "StorageRead",
+    "timestamp": "2026-10-09T15:53:17.627869+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:role/InternalMonitoringRole",
+    "source_ip": "10.0.1.15",
+    "resource": "arn:aws:s3:::*",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "normal_benign_cloud_activity",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "ListBuckets",
+      "routine_job": "cloudwatch-metrics-collector"
+    }
+  },
+  {
+    "event_id": "syn-benign-421898b415fc",
+    "source": "simulator",
+    "event_type": "STSRead",
+    "timestamp": "2026-10-09T15:54:02.627869+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:role/InternalMonitoringRole",
+    "source_ip": "10.0.1.15",
+    "resource": "arn:aws:sts::112233445566:caller",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "normal_benign_cloud_activity",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "GetCallerIdentity",
+      "routine_job": "cloudwatch-metrics-collector"
+    }
+  },
+  {
+    "event_id": "syn-benign-def5b33c92fb",
+    "source": "simulator",
+    "event_type": "EC2Read",
+    "timestamp": "2026-10-09T15:54:47.627869+00:00",
+    "account_id": "112233445566",
+    "region": "us-east-1",
+    "actor": "arn:aws:iam::112233445566:role/InternalMonitoringRole",
+    "source_ip": "10.0.1.15",
+    "resource": "arn:aws:ec2:us-east-1:112233445566:security-group/sg-012345",
+    "outcome": "SUCCESS",
+    "metadata": {
+      "is_synthetic": true,
+      "environment": "simulation",
+      "scenario": "normal_benign_cloud_activity",
+      "disclaimer": "Synthetic security test data - not real attack activity",
+      "api_action": "DescribeSecurityGroups",
+      "routine_job": "cloudwatch-metrics-collector"
+    }
+  }
+]
