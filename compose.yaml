@@ -20,6 +20,58 @@ services:
     networks:
       - cloudsentinel_internal
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloudsentinel-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloudsentinel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudsentinel_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudsentinel_db}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cloudsentinel_user}:${POSTGRES_PASSWORD:-cloudsentinel_dev_password}@postgres:5432/${POSTGRES_DB:-cloudsentinel_db}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DETECTION_RULES_ENABLED: ${DETECTION_RULES_ENABLED:-true}
+      ALERT_SEVERITY_THRESHOLD: ${ALERT_SEVERITY_THRESHOLD:-low}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_CLOUDTRAIL_SQS_QUEUE_URL: ${AWS_CLOUDTRAIL_SQS_QUEUE_URL:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cloudsentinel_internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cloudsentinel-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8000
+      VITE_PROXY_TARGET: http://backend:8000
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cloudsentinel_internal
+
 volumes:
   postgres_data:
     name: cloudsentinel_postgres_data

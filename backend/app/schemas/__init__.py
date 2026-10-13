@@ -21,6 +21,13 @@ from app.schemas.incident import (
     CorrelationRunResponse,
 )
 
+from app.schemas.investigation import (
+    InvestigationCreateRequest,
+    InvestigationResponse,
+    InvestigationListResponse,
+    EvidenceReferences,
+)
+
 __all__ = [
     "EventCreate",
     "EventResponse",
@@ -36,4 +43,8 @@ __all__ = [
     "IncidentUpdateRequest",
     "CorrelationRunRequest",
     "CorrelationRunResponse",
+    "InvestigationCreateRequest",
+    "InvestigationResponse",
+    "InvestigationListResponse",
+    "EvidenceReferences",
 ]

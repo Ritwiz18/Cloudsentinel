@@ -13,6 +13,7 @@ from app.db.session import Base
 from app.models.event import SecurityEvent  # noqa: F401
 from app.models.alert import SecurityAlert  # noqa: F401
 from app.models.incident import Incident, IncidentAudit  # noqa: F401
+from app.models.investigation import Investigation  # noqa: F401
 
 config = context.config
 

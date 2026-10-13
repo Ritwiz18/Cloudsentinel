@@ -8,6 +8,8 @@ from app.api.v1.alerts import router as alerts_router
 from app.api.v1.detections import router as detections_router
 from app.api.v1.events import router as events_router
 from app.api.v1.incidents import router as incidents_router
+from app.api.v1.integrations_aws import router as aws_router
+from app.api.v1.investigations import router as investigations_router
 from app.db.session import Base, engine
 
 
@@ -50,6 +52,8 @@ app.include_router(events_router, prefix="/api/v1")
 app.include_router(detections_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(incidents_router, prefix="/api/v1")
+app.include_router(aws_router, prefix="/api/v1")
+app.include_router(investigations_router, prefix="/api/v1")
 
 
 @app.get("/health", summary="Health check endpoint", tags=["System"])

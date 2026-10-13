@@ -9,6 +9,9 @@ import type {
   IncidentDetail,
   IncidentListResponse,
   IncidentUpdateRequest,
+  InvestigationCreateRequest,
+  InvestigationListResponse,
+  InvestigationResponse,
   SecurityAlert,
   SecurityEvent,
 } from '../types/api';
@@ -192,5 +195,31 @@ export const apiClient = {
       body: JSON.stringify(req || {}),
     });
     return handleResponse<CorrelationRunResponse>(res);
+  },
+
+  async investigateIncident(
+    incidentId: string,
+    req?: InvestigationCreateRequest
+  ): Promise<InvestigationResponse> {
+    const res = await apiFetch(`/api/v1/incidents/${encodeURIComponent(incidentId)}/investigate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req || {}),
+    });
+    return handleResponse<InvestigationResponse>(res);
+  },
+
+  async getIncidentInvestigations(
+    incidentId: string
+  ): Promise<InvestigationListResponse> {
+    const res = await apiFetch(`/api/v1/incidents/${encodeURIComponent(incidentId)}/investigations`);
+    return handleResponse<InvestigationListResponse>(res);
+  },
+
+  async getInvestigationById(
+    investigationId: string
+  ): Promise<InvestigationResponse> {
+    const res = await apiFetch(`/api/v1/investigations/${encodeURIComponent(investigationId)}`);
+    return handleResponse<InvestigationResponse>(res);
   },
 };

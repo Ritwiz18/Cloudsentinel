@@ -143,3 +143,40 @@ export interface ApiFilterParams {
   offset?: number;
   [key: string]: any;
 }
+
+export interface InvestigationResponse {
+  id: number;
+  investigation_id: string;
+  incident_id?: string | null;
+  alert_id?: string | null;
+  summary: string;
+  observed_evidence: string[];
+  detection_explanation: string;
+  potential_impact: string;
+  confidence_level: 'HIGH' | 'MEDIUM' | 'LOW' | string;
+  confidence_limitations: string;
+  recommended_steps: string[];
+  hypotheses: string[];
+  evidence_references: {
+    incident_id?: string;
+    alert_ids?: string[];
+    event_ids?: string[];
+    affected_resources?: string[];
+    actors?: string[];
+    source_ips?: string[];
+    [key: string]: any;
+  };
+  provider: string;
+  model: string;
+  created_at: string;
+}
+
+export interface InvestigationListResponse {
+  items: InvestigationResponse[];
+  total: number;
+}
+
+export interface InvestigationCreateRequest {
+  force_refresh?: boolean;
+  analyst_notes?: string;
+}

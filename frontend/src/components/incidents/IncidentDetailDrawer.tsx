@@ -6,6 +6,7 @@ import { SeverityBadge } from '../common/SeverityBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { RiskScorePill } from '../common/RiskScorePill';
 import { IncidentStatusModal } from './IncidentStatusModal';
+import { IncidentInvestigationView } from './IncidentInvestigationView';
 import {
   Clock,
   Edit3,
@@ -92,6 +93,13 @@ const IncidentDetailDrawerContent: React.FC<ContentProps> = ({
               >
                 <Edit3 size={13} /> Update Status
               </button>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '0.65rem', letterSpacing: '0.05em' }}>
+                AI-Assisted Security Investigation
+              </h4>
+              <IncidentInvestigationView incidentId={detail.incident_id} />
             </div>
 
             <div>
