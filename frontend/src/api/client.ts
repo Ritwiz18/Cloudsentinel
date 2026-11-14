@@ -1,7 +1,13 @@
 import type {
   AlertListResponse,
+  AuditLogListResponse,
+  AWSIntegrationStatus,
+  AWSPollResult,
+  AWSRawIngestResult,
   CorrelationRunRequest,
   CorrelationRunResponse,
+  DashboardOverview,
+  DetectionRuleListResponse,
   DetectionRunRequest,
   DetectionRunResponse,
   EventListResponse,
@@ -114,6 +120,11 @@ export const apiClient = {
     }
   },
 
+  async getDashboardOverview(): Promise<DashboardOverview> {
+    const res = await apiFetch('/api/v1/dashboard/overview');
+    return handleResponse<DashboardOverview>(res);
+  },
+
   async getEvents(params?: {
     limit?: number;
     offset?: number;
@@ -221,5 +232,54 @@ export const apiClient = {
   ): Promise<InvestigationResponse> {
     const res = await apiFetch(`/api/v1/investigations/${encodeURIComponent(investigationId)}`);
     return handleResponse<InvestigationResponse>(res);
+  },
+
+  async getAuditLogs(params?: {
+    limit?: number;
+    offset?: number;
+    incident_id?: string;
+    action?: string;
+  }): Promise<AuditLogListResponse> {
+    const q = buildQuery(params);
+    const res = await apiFetch(`/api/v1/audit/logs${q}`);
+    return handleResponse<AuditLogListResponse>(res);
+  },
+
+  async getAWSStatus(): Promise<AWSIntegrationStatus> {
+    const res = await apiFetch('/api/v1/integrations/aws/status');
+    return handleResponse<AWSIntegrationStatus>(res);
+  },
+
+  async getDetectionRules(): Promise<DetectionRuleListResponse> {
+    const res = await apiFetch('/api/v1/detections/rules');
+    return handleResponse<DetectionRuleListResponse>(res);
+  },
+
+  async listInvestigations(params?: {
+    limit?: number;
+    offset?: number;
+    incident_id?: string;
+  }): Promise<InvestigationListResponse> {
+    const q = buildQuery(params);
+    const res = await apiFetch(`/api/v1/investigations${q}`);
+    return handleResponse<InvestigationListResponse>(res);
+  },
+
+  async pollAWS(payload?: { max_messages?: number; wait_time_seconds?: number }): Promise<AWSPollResult> {
+    const res = await apiFetch('/api/v1/integrations/aws/poll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    });
+    return handleResponse<AWSPollResult>(res);
+  },
+
+  async ingestRawAWS(payload: Record<string, any> | Array<Record<string, any>>): Promise<AWSRawIngestResult> {
+    const res = await apiFetch('/api/v1/integrations/aws/ingest-raw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<AWSRawIngestResult>(res);
   },
 };

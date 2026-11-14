@@ -117,8 +117,8 @@ export const OperationsView: React.FC = () => {
           </div>
 
           <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
-            Inspects ingested security events against configured detection rules (AUTH-001, IAM-001,
-            IAM-002, S3-001, S3-002) and persists deduplicated alerts.
+            Inspects ingested security events against the active detection rules (AUTH-001, IAM-001,
+            STORAGE-001) and persists deduplicated alerts. Benign activity is filtered automatically.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>

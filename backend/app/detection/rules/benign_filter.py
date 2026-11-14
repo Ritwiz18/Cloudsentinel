@@ -15,6 +15,8 @@ class BenignActivityFilterRule(BaseRule):
         "Filters known read-only and routine operations such as DescribeInstances, "
         "ListBuckets, and GetCallerIdentity from generating security alerts."
     )
+    # This rule is an allowlist filter: it never raises an alert itself.
+    generates_alerts = False
 
     BENIGN_ACTIONS = {
         "DescribeInstances",

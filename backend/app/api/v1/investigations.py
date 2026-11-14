@@ -1,6 +1,9 @@
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger("cloudsentinel.api.investigations")
 
 from app.db.session import get_db
 from app.investigation.service import (
@@ -8,6 +11,7 @@ from app.investigation.service import (
     InvestigationNotFoundError,
     get_investigation_by_id,
     investigate_incident,
+    list_investigations,
     list_investigations_for_incident,
 )
 from app.schemas.investigation import (
@@ -48,9 +52,13 @@ async def trigger_incident_investigation(
             detail=str(exc),
         ) from exc
     except Exception as exc:
+        logger.error(
+            "Unhandled exception during investigation for incident '%s': %s",
+            incident_id, exc, exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Investigation failed: {str(exc)}",
+            detail="Investigation could not be completed. Review server logs for details.",
         ) from exc
 
 
@@ -76,6 +84,28 @@ async def get_incident_investigations(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+
+@router.get(
+    "/investigations",
+    response_model=InvestigationListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List all investigation reports",
+    description="Returns paginated investigation reports across all incidents, newest first, with an optional incident_id filter.",
+)
+async def list_all_investigations(
+    limit: int = Query(20, ge=1, le=100, description="Page limit (1-100)"),
+    offset: int = Query(0, ge=0, description="Page offset (0 or greater)"),
+    incident_id: Optional[str] = Query(None, description="Filter by incident ID"),
+    db: AsyncSession = Depends(get_db),
+) -> InvestigationListResponse:
+    items, total = await list_investigations(
+        db=db, limit=limit, offset=offset, incident_id=incident_id
+    )
+    return InvestigationListResponse(
+        items=[InvestigationResponse.model_validate(i) for i in items],
+        total=total,
+    )
 
 
 @router.get(

@@ -8,6 +8,7 @@ import { apiClient } from '../api/client';
 vi.mock('../api/client', () => ({
   apiClient: {
     getHealth: vi.fn(),
+    getDashboardOverview: vi.fn(),
     getEvents: vi.fn(),
     getIncidents: vi.fn(),
     getAlerts: vi.fn(),
@@ -31,9 +32,30 @@ describe('Navigation and Operations Controls', () => {
   it('App navigation switches between tabs and shows API connection state', async () => {
     vi.mocked(apiClient.getHealth).mockResolvedValue({
       status: 'healthy',
+      database: 'connected',
       service: 'cloudsentinel-api',
       timestamp: '2026-10-09T12:00:00Z',
       version: '0.1.0',
+    });
+    vi.mocked(apiClient.getDashboardOverview).mockResolvedValue({
+      total_events: 0,
+      total_alerts: 0,
+      total_incidents: 0,
+      total_investigations: 0,
+      alerts_by_severity: { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFORMATIONAL: 0 },
+      alerts_by_status: { OPEN: 0, INVESTIGATING: 0, RESOLVED: 0, FALSE_POSITIVE: 0 },
+      incidents_by_status: { OPEN: 0, INVESTIGATING: 0, RESOLVED: 0, FALSE_POSITIVE: 0 },
+      critical_high_alerts: 0,
+      open_critical_high_alerts: 0,
+      security_posture_score: 100,
+      posture_grade: 'A',
+      recent_events: [],
+      recent_alerts: [],
+      recent_incidents: [],
+      events_last_24h: 0,
+      alerts_last_24h: 0,
+      incidents_last_24h: 0,
+      generated_at: '2026-10-09T12:00:00Z',
     });
     vi.mocked(apiClient.getEvents).mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 });
     vi.mocked(apiClient.getIncidents).mockResolvedValue({ items: [], total: 0, limit: 5, offset: 0 });
@@ -42,7 +64,7 @@ describe('Navigation and Operations Controls', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('connection-status-pill')).toHaveTextContent('API: Connected (:8000)');
+      expect(screen.getByTestId('connection-status-pill')).toHaveTextContent('API: Connected');
     });
 
     // Navigate to Events tab
@@ -55,10 +77,12 @@ describe('Navigation and Operations Controls', () => {
     await userEvent.click(alertsNav);
     expect(screen.getByTestId('alerts-page-container')).toBeInTheDocument();
 
-    // Navigate to Operations tab
+    // Navigate to Operations tab (lazy-loaded, so wait for Suspense to resolve)
     const opsNav = screen.getByTestId('nav-tab-operations');
     await userEvent.click(opsNav);
-    expect(screen.getByTestId('operations-page-container')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('operations-page-container')).toBeInTheDocument();
+    });
   });
 
   it('OperationsView shows confirmation modal and prevents duplicate submission while running', async () => {

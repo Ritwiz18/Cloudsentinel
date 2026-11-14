@@ -1,12 +1,38 @@
+// Extended API types for expanded CloudSentinel dashboard
 export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIONAL';
 export type IncidentStatusLevel = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_POSITIVE';
 export type AlertStatusLevel = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_POSITIVE';
 
+// Shared navigation tab identifier (used by the app shell and dashboard views)
+export type Tab =
+  | 'overview'
+  | 'threats'
+  | 'alerts'
+  | 'incidents'
+  | 'assets'
+  | 'aws'
+  | 'iam'
+  | 'network'
+  | 'cspm'
+  | 'investigate'
+  | 'audit'
+  | 'integrations'
+  | 'events'
+  | 'operations'
+  | 'settings';
+
+export interface HealthEngines {
+  detection?: { provider: string; rules: string[] };
+  investigation?: { provider: string; model: string };
+}
+
 export interface HealthResponse {
   status: string;
+  database: string;
   service: string;
   timestamp: string;
   version: string;
+  engines?: HealthEngines;
 }
 
 export interface SecurityEvent {
@@ -179,4 +205,132 @@ export interface InvestigationListResponse {
 export interface InvestigationCreateRequest {
   force_refresh?: boolean;
   analyst_notes?: string;
+}
+
+// --- Dashboard Overview ---
+export interface SeverityCount {
+  CRITICAL: number;
+  HIGH: number;
+  MEDIUM: number;
+  LOW: number;
+  INFORMATIONAL: number;
+}
+
+export interface StatusCount {
+  OPEN: number;
+  INVESTIGATING: number;
+  RESOLVED: number;
+  FALSE_POSITIVE: number;
+}
+
+export interface DashboardRecentEvent {
+  event_id: string;
+  source: string;
+  event_type: string;
+  outcome: string;
+  actor?: string | null;
+  region?: string | null;
+  timestamp: string;
+  ingested_at: string;
+}
+
+export interface DashboardRecentAlert {
+  alert_id: string;
+  rule_name: string;
+  severity: SeverityLevel;
+  risk_score: number;
+  title: string;
+  status: AlertStatusLevel;
+  first_seen: string;
+  occurrence_count: number;
+}
+
+export interface DashboardRecentIncident {
+  incident_id: string;
+  title: string;
+  severity: SeverityLevel;
+  risk_score: number;
+  status: IncidentStatusLevel;
+  first_seen: string;
+  assigned_analyst?: string | null;
+}
+
+export interface DashboardOverview {
+  total_events: number;
+  total_alerts: number;
+  total_incidents: number;
+  total_investigations: number;
+  alerts_by_severity: SeverityCount;
+  alerts_by_status: StatusCount;
+  incidents_by_status: StatusCount;
+  critical_high_alerts: number;
+  open_critical_high_alerts: number;
+  security_posture_score: number;
+  posture_grade: string;
+  recent_events: DashboardRecentEvent[];
+  recent_alerts: DashboardRecentAlert[];
+  recent_incidents: DashboardRecentIncident[];
+  events_last_24h: number;
+  alerts_last_24h: number;
+  incidents_last_24h: number;
+  generated_at: string;
+}
+
+// --- Audit Logs ---
+export interface AuditLogEntry {
+  id: number;
+  incident_id: string;
+  action: string;
+  previous_state?: Record<string, any> | null;
+  new_state?: Record<string, any> | null;
+  actor?: string | null;
+  reason?: string | null;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+// --- AWS Integration Status ---
+export interface AWSIntegrationStatus {
+  status: string;
+  region: string;
+  sqs_configured: boolean;
+  s3_bucket_configured: boolean;
+  queue_url_masked?: string | null;
+  custom_endpoint_active: boolean;
+}
+
+// --- Detection Rules ---
+export interface DetectionRule {
+  rule_id: string;
+  rule_name: string;
+  description: string;
+  generates_alerts: boolean;
+  evaluation_mode: string;
+}
+
+export interface DetectionRuleListResponse {
+  rules: DetectionRule[];
+  total: number;
+}
+
+// --- AWS Integration Operations ---
+export interface AWSPollResult {
+  messages_received: number;
+  messages_deleted: number;
+  events_ingested: number;
+  duplicates_skipped: number;
+  records_failed: number;
+  errors: string[];
+}
+
+export interface AWSRawIngestResult {
+  events_ingested: number;
+  duplicates_skipped: number;
+  records_failed: number;
 }

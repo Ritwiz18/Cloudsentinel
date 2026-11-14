@@ -13,7 +13,8 @@ class InvestigationCreateRequest(BaseModel):
     )
     analyst_notes: Optional[str] = Field(
         default=None,
-        description="Optional context or notes provided by the investigating security analyst",
+        max_length=2000,
+        description="Optional context or notes provided by the investigating security analyst (max 2000 chars)",
     )
 
 

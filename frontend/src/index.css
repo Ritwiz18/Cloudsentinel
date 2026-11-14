@@ -743,6 +743,14 @@ code, pre, .font-mono {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -761,5 +769,8 @@ code, pre, .font-mono {
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
     z-index: 35;
+  }
+  .mobile-menu-btn {
+    display: flex !important;
   }
 }

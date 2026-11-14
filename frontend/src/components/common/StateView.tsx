@@ -7,8 +7,7 @@ interface LoadingProps {
 
 export const LoadingState: React.FC<LoadingProps> = ({ message = 'Loading security data...' }) => (
   <div className="state-box" data-testid="loading-state">
-    <Loader2 size={36} className="state-icon" style={{ animation: 'spin 1s linear infinite' }} />
-    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+    <Loader2 size={36} className="state-icon spin" />
     <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{message}</p>
   </div>
 );
@@ -37,20 +36,27 @@ export const ErrorState: React.FC<ErrorProps> = ({
 );
 
 interface EmptyProps {
+  /** Custom icon to display (optional — overrides the default Database icon) */
+  icon?: React.ReactNode;
   title?: string;
+  /** Primary message (falls back to `title` if neither is set) */
   message?: string;
+  /** Secondary descriptive line */
+  sub?: string;
   action?: React.ReactNode;
 }
 
 export const EmptyState: React.FC<EmptyProps> = ({
+  icon,
   title = 'No records found',
-  message = 'There are no events, alerts, or incidents matching your current filters.',
+  message,
+  sub,
   action,
 }) => (
   <div className="state-box" data-testid="empty-state">
-    <Database size={38} className="state-icon" />
-    <h4 style={{ color: '#f1f5f9', fontSize: '0.95rem', fontWeight: 600 }}>{title}</h4>
-    <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '400px' }}>{message}</p>
+    {icon ? <div className="state-icon">{icon}</div> : <Database size={38} className="state-icon" />}
+    <h4 style={{ color: '#f1f5f9', fontSize: '0.95rem', fontWeight: 600 }}>{message || title}</h4>
+    {sub && <p style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '400px' }}>{sub}</p>}
     {action && <div style={{ marginTop: '0.75rem' }}>{action}</div>}
   </div>
 );

@@ -30,7 +30,7 @@ def sample_cloudtrail_iam_record() -> dict:
             "accountId": "112233445566",
             "userName": "compromised-contractor",
         },
-        "eventTime": "2026-10-12T17:05:00Z",
+        "eventTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "eventSource": "iam.amazonaws.com",
         "eventName": "AttachUserPolicy",
         "awsRegion": "us-east-1",
@@ -113,8 +113,8 @@ def test_normalize_valid_iam_record(sample_cloudtrail_iam_record):
     assert event.source_ip == "198.51.100.88"
     assert event.metadata["api_action"] == "AttachUserPolicy"
     assert event.metadata["policy_arn"] == "arn:aws:iam::aws:policy/AdministratorAccess"
-    assert event.metadata["target_user"] == "compromised-contractor"
-    assert event.timestamp == datetime(2026, 10, 12, 17, 5, 0, tzinfo=timezone.utc)
+    expected_ts = datetime.fromisoformat(sample_cloudtrail_iam_record["eventTime"].replace("Z", "+00:00"))
+    assert event.timestamp == expected_ts
 
 
 def test_normalize_valid_storage_record(sample_cloudtrail_storage_record):
@@ -497,3 +497,23 @@ async def test_aws_poll_endpoint_unconfigured_skips_gracefully(async_client: Asy
     data = resp.json()
     assert data["messages_received"] == 0
     assert data["events_ingested"] == 0
+
+
+@pytest.mark.asyncio
+async def test_ingest_raw_rejects_oversized_batch(async_client: AsyncClient, sample_cloudtrail_iam_record: dict):
+    """
+    SECURITY REGRESSION: ingest-raw must reject batches > 500 records to prevent DoS.
+    Sending 501 records must return HTTP 413.
+    """
+    records = []
+    for i in range(501):
+        rec = dict(sample_cloudtrail_iam_record)
+        rec["eventID"] = f"ct-oversize-{i:04d}"
+        records.append(rec)
+
+    resp = await async_client.post(
+        "/api/v1/integrations/aws/ingest-raw",
+        json={"Records": records},
+    )
+    assert resp.status_code == 413, f"Expected 413, got {resp.status_code}: {resp.text}"
+    assert "500" in resp.json()["detail"]

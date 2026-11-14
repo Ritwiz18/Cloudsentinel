@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { DetectionRule } from '../../types/api';
 import { apiClient, ApiError } from '../../api/client';
 import type { SecurityAlert } from '../../types/api';
 import { EmptyState, ErrorState, LoadingState } from '../common/StateView';
@@ -18,6 +19,7 @@ export const AlertsTable: React.FC = () => {
   const [filterSeverity, setFilterSeverity] = useState('');
   const [filterRule, setFilterRule] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [ruleOptions, setRuleOptions] = useState<DetectionRule[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,22 @@ export const AlertsTable: React.FC = () => {
       isMountedRef.current = false;
     };
   }, [executeFetch]);
+
+  // Rule filter options come from the real detection engine
+  // (GET /api/v1/detections/rules). The call is optional so this view also
+  // works when only the alerts endpoint is available; the table below then
+  // falls back to the rule IDs present in the loaded alerts.
+  useEffect(() => {
+    if (typeof apiClient.getDetectionRules !== 'function') return;
+    apiClient
+      .getDetectionRules()
+      .then((r) => { setRuleOptions(r.rules); })
+      .catch(() => {});
+  }, []);
+
+  const ruleIds = Array.from(
+    new Set([...ruleOptions.map((r) => r.rule_id), ...alerts.map((a) => a.rule_id)])
+  );
 
   const handleResetFilters = () => {
     setFilterSeverity('');
@@ -118,11 +136,14 @@ export const AlertsTable: React.FC = () => {
           aria-label="Filter by rule ID"
         >
           <option value="">All Rules</option>
-          <option value="AUTH-001">AUTH-001 (Brute-Force Auth)</option>
-          <option value="IAM-001">IAM-001 (Admin Access Escalation)</option>
-          <option value="IAM-002">IAM-002 (Wildcard AssumeRole)</option>
-          <option value="S3-001">S3-001 (Block Public Access Removed)</option>
-          <option value="S3-002">S3-002 (Public Read ACL)</option>
+          {ruleIds.map((rid) => {
+            const meta = ruleOptions.find((r) => r.rule_id === rid);
+            return (
+              <option key={rid} value={rid}>
+                {rid} · {meta ? meta.rule_name : 'detection rule'}
+              </option>
+            );
+          })}
         </select>
 
         <select

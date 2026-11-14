@@ -16,6 +16,10 @@ export const EventsTable: React.FC = () => {
   const [filterSource, setFilterSource] = useState('');
   const [filterOutcome, setFilterOutcome] = useState('');
 
+  const [typeOptions, setTypeOptions] = useState<string[]>([]);
+  const [sourceOptions, setSourceOptions] = useState<string[]>([]);
+  const [outcomeOptions, setOutcomeOptions] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
@@ -60,6 +64,19 @@ export const EventsTable: React.FC = () => {
     };
   }, [executeFetch]);
 
+  // Filter options are derived from actually-ingested events so the dropdowns
+  // only ever contain values present in the database (no fabricated types/sources).
+  useEffect(() => {
+    apiClient
+      .getEvents({ limit: 100, offset: 0 })
+      .then((r) => {
+        setTypeOptions(Array.from(new Set(r.items.map((e) => e.event_type))));
+        setSourceOptions(Array.from(new Set(r.items.map((e) => e.source))));
+        setOutcomeOptions(Array.from(new Set(r.items.map((e) => e.outcome))));
+      })
+      .catch(() => {});
+  }, []);
+
   const handleResetFilters = () => {
     setFilterType('');
     setFilterSource('');
@@ -98,9 +115,9 @@ export const EventsTable: React.FC = () => {
           aria-label="Filter by event type"
         >
           <option value="">All Event Types</option>
-          <option value="Authentication">Authentication</option>
-          <option value="IAMPolicyChange">IAMPolicyChange</option>
-          <option value="StorageAccess">StorageAccess</option>
+          {Array.from(new Set([...typeOptions, ...(filterType ? [filterType] : [])])).map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
         </select>
 
         <select
@@ -113,9 +130,9 @@ export const EventsTable: React.FC = () => {
           aria-label="Filter by source"
         >
           <option value="">All Sources</option>
-          <option value="simulator">simulator</option>
-          <option value="aws.cloudtrail">aws.cloudtrail</option>
-          <option value="aws.guardduty">aws.guardduty</option>
+          {Array.from(new Set([...sourceOptions, ...(filterSource ? [filterSource] : [])])).map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
         </select>
 
         <select
@@ -128,9 +145,9 @@ export const EventsTable: React.FC = () => {
           aria-label="Filter by outcome"
         >
           <option value="">All Outcomes</option>
-          <option value="SUCCESS">SUCCESS</option>
-          <option value="FAILURE">FAILURE</option>
-          <option value="DENIED">DENIED</option>
+          {Array.from(new Set([...outcomeOptions, ...(filterOutcome ? [filterOutcome] : [])])).map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
         </select>
 
         {(filterType || filterSource || filterOutcome) && (

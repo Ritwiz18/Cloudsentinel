@@ -104,6 +104,7 @@ async def ingest_raw_cloudtrail(
     payload: Union[Dict[str, Any], List[Dict[str, Any]]],
     db: AsyncSession = Depends(get_db),
 ) -> RawIngestResponse:
+    _MAX_RECORDS = 500
     records: List[Dict[str, Any]] = []
     if isinstance(payload, list):
         records = [r for r in payload if isinstance(r, dict)]
@@ -117,6 +118,12 @@ async def ingest_raw_cloudtrail(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Payload contains no valid CloudTrail records.",
+        )
+
+    if len(records) > _MAX_RECORDS:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"Payload exceeds maximum of {_MAX_RECORDS} records per request. Split into smaller batches.",
         )
 
     worker = CloudTrailIngestionWorker()

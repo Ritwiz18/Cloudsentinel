@@ -33,6 +33,8 @@ class BaseRule(ABC):
     rule_id: str
     rule_name: str
     description: str
+    # Allowlist/filter rules never raise alerts; default True for detectors.
+    generates_alerts: bool = True
 
     def evaluate_event(self, event: SecurityEvent) -> Optional[DetectionResult]:
         """

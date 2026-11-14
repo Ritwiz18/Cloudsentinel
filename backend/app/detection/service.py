@@ -127,7 +127,10 @@ async def list_alerts(
     if severity:
         conditions.append(SecurityAlert.severity == severity.upper())
     if rule_id:
-        conditions.append(SecurityAlert.rule_id == rule_id)
+        # Case-insensitive containment match: exact rule IDs ("AUTH-001") still
+        # match themselves, while partial input ("AUTH", "storage") also finds
+        # rules instead of silently returning zero rows.
+        conditions.append(SecurityAlert.rule_id.ilike(f"%{rule_id}%"))
     if status:
         conditions.append(SecurityAlert.status == status.upper())
 

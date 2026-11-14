@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy import desc, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.investigation.context import (
@@ -200,6 +200,39 @@ async def list_investigations_for_incident(
     )
     inv_res = await db.execute(inv_stmt)
     return list(inv_res.scalars().all())
+
+
+async def list_investigations(
+    db: AsyncSession,
+    limit: int = 20,
+    offset: int = 0,
+    incident_id: Optional[str] = None,
+) -> Tuple[List[Investigation], int]:
+    """
+    Returns paginated investigation reports across all incidents,
+    newest first, optionally filtered to a single incident.
+    """
+    conditions = []
+    if incident_id:
+        conditions.append(Investigation.incident_id == incident_id)
+
+    count_stmt = select(func.count(Investigation.id))
+    if conditions:
+        count_stmt = count_stmt.where(and_(*conditions))
+    total_res = await db.execute(count_stmt)
+    total = total_res.scalar_one() or 0
+
+    stmt = (
+        select(Investigation)
+        .order_by(desc(Investigation.created_at), Investigation.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    if conditions:
+        stmt = stmt.where(and_(*conditions))
+
+    res = await db.execute(stmt)
+    return list(res.scalars().all()), total
 
 
 async def get_investigation_by_id(
