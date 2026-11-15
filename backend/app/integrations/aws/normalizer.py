@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 from pydantic import ValidationError
 
-from app.schemas.event import EventCreate
+from ...schemas.event import EventCreate
 
 logger = logging.getLogger("cloudsentinel.integrations.aws.normalizer")
 

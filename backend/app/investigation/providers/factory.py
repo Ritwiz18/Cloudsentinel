@@ -1,7 +1,7 @@
-from app.core.config import settings
-from app.investigation.providers.base import BaseInvestigationProvider
-from app.investigation.providers.llm_provider import LLMInvestigationProvider
-from app.investigation.providers.rule_based import RuleBasedInvestigationProvider
+from ...core.config import settings
+from .base import BaseInvestigationProvider
+from .llm_provider import LLMInvestigationProvider
+from .rule_based import RuleBasedInvestigationProvider
 
 
 def get_investigation_provider() -> BaseInvestigationProvider:

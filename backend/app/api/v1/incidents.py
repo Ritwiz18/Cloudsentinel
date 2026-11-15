@@ -2,8 +2,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.correlation.service import (
+from ...db.session import get_db
+from ...correlation.service import (
     IncidentNotFoundError,
     InvalidTransitionError,
     get_incident_alerts,
@@ -12,8 +12,8 @@ from app.correlation.service import (
     run_correlation,
     update_incident,
 )
-from app.schemas.alert import AlertResponse
-from app.schemas.incident import (
+from ...schemas.alert import AlertResponse
+from ...schemas.incident import (
     CorrelationRunRequest,
     CorrelationRunResponse,
     IncidentAuditResponse,

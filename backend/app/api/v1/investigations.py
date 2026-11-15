@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("cloudsentinel.api.investigations")
 
-from app.db.session import get_db
-from app.investigation.service import (
+from ...db.session import get_db
+from ...investigation.service import (
     IncidentNotFoundError,
     InvestigationNotFoundError,
     get_investigation_by_id,
@@ -14,7 +14,7 @@ from app.investigation.service import (
     list_investigations,
     list_investigations_for_incident,
 )
-from app.schemas.investigation import (
+from ...schemas.investigation import (
     InvestigationCreateRequest,
     InvestigationListResponse,
     InvestigationResponse,

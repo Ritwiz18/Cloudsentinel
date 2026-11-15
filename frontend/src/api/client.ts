@@ -120,9 +120,22 @@ export const apiClient = {
     }
   },
 
-  async getDashboardOverview(): Promise<DashboardOverview> {
-    const res = await apiFetch('/api/v1/dashboard/overview');
+  async getDashboardOverview(params?: {
+    period?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<DashboardOverview> {
+    const q = buildQuery(params);
+    const res = await apiFetch(`/api/v1/dashboard/overview${q}`);
     return handleResponse<DashboardOverview>(res);
+  },
+
+  async getSecurityTimeline(params?: {
+    limit?: number;
+  }): Promise<any[]> {
+    const q = buildQuery(params);
+    const res = await apiFetch(`/api/v1/dashboard/timeline${q}`);
+    return handleResponse<any[]>(res);
   },
 
   async getEvents(params?: {

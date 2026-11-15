@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.detection.engine import DetectionEngine
-from app.models.alert import SecurityAlert
-from app.models.event import SecurityEvent
-from app.schemas.alert import DetectionRunRequest, DetectionRunResponse
+from ..core.config import settings
+from .engine import DetectionEngine
+from ..models.alert import SecurityAlert
+from ..models.event import SecurityEvent
+from ..schemas.alert import DetectionRunRequest, DetectionRunResponse
 
 
 async def run_detections(
@@ -58,6 +58,19 @@ async def run_detections(
         alert_result = await db.execute(alert_stmt)
         existing_alert = alert_result.scalars().first()
 
+        # Resolve originating source from the earliest related event so every
+        # alert identifies its telemetry source (simulator vs aws.cloudtrail).
+        alert_source = None
+        if det.related_event_ids:
+            src_stmt = (
+                select(SecurityEvent.source)
+                .where(SecurityEvent.event_id.in_(det.related_event_ids))
+                .order_by(SecurityEvent.timestamp.asc())
+                .limit(1)
+            )
+            src_res = await db.execute(src_stmt)
+            alert_source = src_res.scalar()
+
         if existing_alert:
             # Idempotently update the existing alert in place
             existing_alert.last_seen = max(existing_alert.last_seen, det.last_seen)
@@ -66,6 +79,8 @@ async def run_detections(
             combined_ids = set(existing_alert.related_event_ids or []) | set(det.related_event_ids)
             existing_alert.related_event_ids = sorted(list(combined_ids))
             existing_alert.evidence = det.evidence
+            if existing_alert.source is None and alert_source:
+                existing_alert.source = alert_source
             existing_alert.updated_at = now
             alerts_updated += 1
         else:
@@ -81,6 +96,7 @@ async def run_detections(
                 title=det.title,
                 description=det.description,
                 status="OPEN",
+                source=alert_source,
                 related_event_ids=det.related_event_ids,
                 evidence=det.evidence,
                 first_seen=det.first_seen,
@@ -119,9 +135,12 @@ async def list_alerts(
     severity: Optional[str] = None,
     rule_id: Optional[str] = None,
     status: Optional[str] = None,
+    source: Optional[str] = None,
+    search: Optional[str] = None,
 ) -> Tuple[List[SecurityAlert], int]:
     """
-    Returns paginated alerts ordered newest first, with optional severity, rule_id, or status filters.
+    Returns paginated alerts ordered newest first, with optional severity,
+    rule_id, status, source, or free-text search filters.
     """
     conditions = []
     if severity:
@@ -133,6 +152,18 @@ async def list_alerts(
         conditions.append(SecurityAlert.rule_id.ilike(f"%{rule_id}%"))
     if status:
         conditions.append(SecurityAlert.status == status.upper())
+    if source:
+        conditions.append(SecurityAlert.source == source)
+    if search:
+        like_pattern = f"%{search}%"
+        conditions.append(
+            or_(
+                SecurityAlert.title.ilike(like_pattern),
+                SecurityAlert.description.ilike(like_pattern),
+                SecurityAlert.alert_id.ilike(like_pattern),
+                SecurityAlert.rule_id.ilike(like_pattern),
+            )
+        )
 
     count_stmt = select(func.count(SecurityAlert.id))
     if conditions:

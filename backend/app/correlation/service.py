@@ -4,11 +4,11 @@ from typing import List, Optional, Tuple
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.correlation.engine import CorrelationEngine
-from app.correlation.risk_aggregator import calculate_incident_metrics
-from app.models.alert import SecurityAlert
-from app.models.incident import Incident, IncidentAudit
-from app.schemas.incident import CorrelationRunRequest, CorrelationRunResponse, IncidentUpdateRequest
+from .engine import CorrelationEngine
+from .risk_aggregator import calculate_incident_metrics
+from ..models.alert import SecurityAlert
+from ..models.incident import Incident, IncidentAudit
+from ..schemas.incident import CorrelationRunRequest, CorrelationRunResponse, IncidentUpdateRequest
 
 VALID_STATUSES = {"OPEN", "INVESTIGATING", "RESOLVED", "FALSE_POSITIVE"}
 

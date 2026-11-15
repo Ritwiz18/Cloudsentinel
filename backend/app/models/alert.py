@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from sqlalchemy import DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
-from app.db.session import Base
+from ..db.session import Base
 
 
 class SecurityAlert(Base):
@@ -38,6 +38,9 @@ class SecurityAlert(Base):
 
     # Lifecycle status: OPEN, INVESTIGATING, RESOLVED, FALSE_POSITIVE
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="OPEN", index=True)
+
+    # Originating event source (e.g. simulator, aws.cloudtrail) for source filtering
+    source: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
 
     # Correlated event identifiers
     related_event_ids: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)

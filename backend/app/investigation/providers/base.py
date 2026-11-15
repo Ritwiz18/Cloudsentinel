@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.investigation.context import InvestigationContext, InvestigationResult
+from ..context import InvestigationContext, InvestigationResult
 
 
 class BaseInvestigationProvider(ABC):

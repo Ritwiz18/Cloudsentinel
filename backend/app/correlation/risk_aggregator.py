@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from app.models.alert import SecurityAlert
+from ..models.alert import SecurityAlert
 
 SEVERITY_RANKS = {
     "INFORMATIONAL": 0,

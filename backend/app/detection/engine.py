@@ -1,6 +1,6 @@
 import logging
 from typing import List, Tuple
-from app.detection.rules import (
+from .rules import (
     BaseRule,
     DetectionResult,
     RepeatedAuthFailuresRule,
@@ -8,7 +8,7 @@ from app.detection.rules import (
     RiskyStorageConfigRule,
     BenignActivityFilterRule,
 )
-from app.models.event import SecurityEvent
+from ..models.event import SecurityEvent
 
 logger = logging.getLogger("cloudsentinel.detection")
 

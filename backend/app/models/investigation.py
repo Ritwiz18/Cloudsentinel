@@ -4,7 +4,7 @@ from sqlalchemy import DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
-from app.db.session import Base
+from ..db.session import Base
 
 
 class Investigation(Base):

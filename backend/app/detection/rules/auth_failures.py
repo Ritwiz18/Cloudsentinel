@@ -2,9 +2,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
-from app.detection.risk_model import calculate_risk
-from app.detection.rules.base import BaseRule, DetectionResult
-from app.models.event import SecurityEvent
+from ..risk_model import calculate_risk
+from .base import BaseRule, DetectionResult
+from ...models.event import SecurityEvent
 
 
 class RepeatedAuthFailuresRule(BaseRule):

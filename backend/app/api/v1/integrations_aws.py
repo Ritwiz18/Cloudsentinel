@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.db.session import get_db
-from app.integrations.aws.worker import CloudTrailIngestionWorker
+from ...core.config import settings
+from ...db.session import get_db
+from ...integrations.aws.worker import CloudTrailIngestionWorker
 
 router = APIRouter(prefix="/integrations/aws", tags=["AWS Integration"])
 

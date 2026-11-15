@@ -9,17 +9,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.v1.alerts import router as alerts_router
-from app.api.v1.detections import router as detections_router
-from app.api.v1.events import router as events_router
-from app.api.v1.incidents import router as incidents_router
-from app.api.v1.integrations_aws import router as aws_router
-from app.api.v1.investigations import router as investigations_router
-from app.api.v1.dashboard import router as dashboard_router
-from app.api.v1.audit import router as audit_router
-from app.db.session import Base, engine
-from app.detection.engine import DetectionEngine
-from app.investigation.providers.factory import get_investigation_provider
+from .api.v1.alerts import router as alerts_router
+from .api.v1.detections import router as detections_router
+from .api.v1.events import router as events_router
+from .api.v1.incidents import router as incidents_router
+from .api.v1.integrations_aws import router as aws_router
+from .api.v1.investigations import router as investigations_router
+from .api.v1.dashboard import router as dashboard_router
+from .api.v1.audit import router as audit_router
+from .db.session import Base, engine
+from .detection.engine import DetectionEngine
+from .investigation.providers.factory import get_investigation_provider
 
 logger = logging.getLogger("cloudsentinel.app")
 

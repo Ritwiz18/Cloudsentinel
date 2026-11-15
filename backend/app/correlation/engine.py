@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.models.alert import SecurityAlert
+from ..models.alert import SecurityAlert
 
 
 @dataclass

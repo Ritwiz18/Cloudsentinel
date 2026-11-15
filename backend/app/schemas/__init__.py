@@ -1,17 +1,17 @@
 """CloudSentinel Schemas Package."""
 
-from app.schemas.event import (
+from .event import (
     EventCreate,
     EventResponse,
     EventListResponse,
 )
-from app.schemas.alert import (
+from .alert import (
     AlertResponse,
     AlertListResponse,
     DetectionRunRequest,
     DetectionRunResponse,
 )
-from app.schemas.incident import (
+from .incident import (
     IncidentResponse,
     IncidentDetailResponse,
     IncidentListResponse,
@@ -21,7 +21,7 @@ from app.schemas.incident import (
     CorrelationRunResponse,
 )
 
-from app.schemas.investigation import (
+from .investigation import (
     InvestigationCreateRequest,
     InvestigationResponse,
     InvestigationListResponse,

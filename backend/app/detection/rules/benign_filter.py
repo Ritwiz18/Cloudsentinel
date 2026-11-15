@@ -1,7 +1,7 @@
 from typing import Optional
 
-from app.detection.rules.base import BaseRule, DetectionResult
-from app.models.event import SecurityEvent
+from .base import BaseRule, DetectionResult
+from ...models.event import SecurityEvent
 
 
 class BenignActivityFilterRule(BaseRule):

@@ -2,10 +2,10 @@ import logging
 from typing import Any, Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.integrations.aws.normalizer import CloudTrailParseError, normalize_cloudtrail_record
-from app.integrations.aws.s3_reader import S3LogReader, S3ReaderError
-from app.integrations.aws.sqs_consumer import SQSConsumer, SQSConsumerError
-from app.services.event_service import EventAlreadyExistsError, create_event
+from .normalizer import CloudTrailParseError, normalize_cloudtrail_record
+from .s3_reader import S3LogReader, S3ReaderError
+from .sqs_consumer import SQSConsumer, SQSConsumerError
+from ...services.event_service import EventAlreadyExistsError, create_event
 
 logger = logging.getLogger("cloudsentinel.integrations.aws.worker")
 

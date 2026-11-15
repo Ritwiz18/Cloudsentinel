@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from app.models.event import SecurityEvent
+from ...models.event import SecurityEvent
 
 
 class DetectionResult(BaseModel):

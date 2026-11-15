@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
-from app.investigation.context import InvestigationContext, InvestigationResult
-from app.investigation.providers.base import BaseInvestigationProvider
+from ..context import InvestigationContext, InvestigationResult
+from .base import BaseInvestigationProvider
 
 
 class RuleBasedInvestigationProvider(BaseInvestigationProvider):

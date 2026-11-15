@@ -2,9 +2,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.detection.service import get_alert_by_id, list_alerts
-from app.schemas.alert import AlertListResponse, AlertResponse
+from ...db.session import get_db
+from ...detection.service import get_alert_by_id, list_alerts
+from ...schemas.alert import AlertListResponse, AlertResponse
 
 router = APIRouter(prefix="/alerts", tags=["Security Alerts"])
 
@@ -22,6 +22,8 @@ async def get_alerts(
     severity: Optional[str] = Query(None, description="Filter by severity band (INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL)"),
     rule_id: Optional[str] = Query(None, description="Filter by detection rule ID (e.g. AUTH-001)"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by alert status (OPEN, INVESTIGATING, RESOLVED)"),
+    source: Optional[str] = Query(None, description="Filter by originating event source (simulator, aws.cloudtrail)"),
+    search: Optional[str] = Query(None, description="Case-insensitive search across title, description, alert ID and rule ID"),
     db: AsyncSession = Depends(get_db),
 ) -> AlertListResponse:
     items, total = await list_alerts(
@@ -31,6 +33,8 @@ async def get_alerts(
         severity=severity,
         rule_id=rule_id,
         status=status_filter,
+        source=source,
+        search=search,
     )
     return AlertListResponse(
         items=[AlertResponse.model_validate(item) for item in items],

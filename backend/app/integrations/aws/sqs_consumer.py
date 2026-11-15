@@ -6,7 +6,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
-from app.core.config import settings
+from ...core.config import settings
 
 logger = logging.getLogger("cloudsentinel.integrations.aws.sqs_consumer")
 

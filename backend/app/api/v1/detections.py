@@ -2,12 +2,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.detection.engine import DetectionEngine
-from app.detection.rules.base import BaseRule
-from app.detection.service import run_detections
-from app.schemas.alert import DetectionRunRequest, DetectionRunResponse
-from app.schemas.detection import DetectionRuleInfo, DetectionRuleListResponse
+from ...db.session import get_db
+from ...detection.engine import DetectionEngine
+from ...detection.rules.base import BaseRule
+from ...detection.service import run_detections
+from ...schemas.alert import DetectionRunRequest, DetectionRunResponse
+from ...schemas.detection import DetectionRuleInfo, DetectionRuleListResponse
 
 router = APIRouter(prefix="/detections", tags=["Detections"])
 

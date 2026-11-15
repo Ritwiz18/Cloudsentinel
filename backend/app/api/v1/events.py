@@ -1,10 +1,11 @@
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.schemas.event import EventCreate, EventListResponse, EventResponse
-from app.services.event_service import (
+from ...db.session import get_db
+from ...schemas.event import EventCreate, EventListResponse, EventResponse
+from ...services.event_service import (
     EventAlreadyExistsError,
     create_event,
     get_event_by_event_id,
@@ -48,6 +49,9 @@ async def get_events(
     event_type: Optional[str] = Query(None, description="Filter by event category"),
     source: Optional[str] = Query(None, description="Filter by event source"),
     outcome: Optional[str] = Query(None, description="Filter by event outcome"),
+    search: Optional[str] = Query(None, description="Case-insensitive search across event ID, type, actor and resource"),
+    timestamp_from: Optional[datetime] = Query(None, description="Include events at or after this ISO-8601 timestamp"),
+    timestamp_to: Optional[datetime] = Query(None, description="Include events at or before this ISO-8601 timestamp"),
     db: AsyncSession = Depends(get_db),
 ) -> EventListResponse:
     items, total = await list_events(
@@ -57,6 +61,9 @@ async def get_events(
         event_type=event_type,
         source=source,
         outcome=outcome,
+        search=search,
+        timestamp_from=timestamp_from,
+        timestamp_to=timestamp_to,
     )
     return EventListResponse(
         items=[EventResponse.model_validate(item) for item in items],

@@ -5,16 +5,16 @@ from typing import List, Optional, Tuple
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.investigation.context import (
+from .context import (
     AlertEvidenceSummary,
     EventEvidenceSummary,
     InvestigationContext,
 )
-from app.investigation.providers.factory import get_investigation_provider
-from app.models.alert import SecurityAlert
-from app.models.event import SecurityEvent
-from app.models.incident import Incident
-from app.models.investigation import Investigation
+from .providers.factory import get_investigation_provider
+from ..models.alert import SecurityAlert
+from ..models.event import SecurityEvent
+from ..models.incident import Incident
+from ..models.investigation import Investigation
 
 logger = logging.getLogger("cloudsentinel.investigation.service")
 

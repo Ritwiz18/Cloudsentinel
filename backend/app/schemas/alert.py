@@ -18,6 +18,7 @@ class AlertResponse(BaseModel):
     title: str = Field(..., description="Alert headline title")
     description: str = Field(..., description="Detailed alert summary")
     status: str = Field(..., description="Alert lifecycle state (OPEN, INVESTIGATING, RESOLVED, FALSE_POSITIVE)")
+    source: Optional[str] = Field(default=None, description="Originating event source (e.g. simulator, aws.cloudtrail)")
     related_event_ids: List[str] = Field(default_factory=list, description="IDs of correlated events")
     evidence: Dict[str, Any] = Field(default_factory=dict, description="Diagnostic evidence and indicators")
     first_seen: datetime = Field(..., description="First observed event timestamp")

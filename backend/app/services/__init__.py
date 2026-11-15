@@ -1,6 +1,6 @@
 """CloudSentinel Services Package."""
 
-from app.services.event_service import (
+from .event_service import (
     EventAlreadyExistsError,
     create_event,
     get_event_by_event_id,

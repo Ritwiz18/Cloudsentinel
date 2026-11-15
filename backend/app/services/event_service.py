@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.event import SecurityEvent
-from app.schemas.event import EventCreate
+from ..models.event import SecurityEvent
+from ..schemas.event import EventCreate
 
 
 class EventAlreadyExistsError(Exception):
@@ -61,10 +61,14 @@ async def list_events(
     event_type: Optional[str] = None,
     source: Optional[str] = None,
     outcome: Optional[str] = None,
+    search: Optional[str] = None,
+    timestamp_from: Optional[datetime] = None,
+    timestamp_to: Optional[datetime] = None,
 ) -> Tuple[List[SecurityEvent], int]:
     """
     Retrieves paginated security events, newest ingestion time first,
-    with optional filtering by event_type, source, or outcome.
+    with optional filtering by event_type, source, outcome, free-text
+    search, or event timestamp range.
     """
     conditions = []
     if event_type:
@@ -73,6 +77,20 @@ async def list_events(
         conditions.append(SecurityEvent.source == source)
     if outcome:
         conditions.append(SecurityEvent.outcome == outcome)
+    if search:
+        like_pattern = f"%{search}%"
+        conditions.append(
+            or_(
+                SecurityEvent.event_id.ilike(like_pattern),
+                SecurityEvent.event_type.ilike(like_pattern),
+                SecurityEvent.actor.ilike(like_pattern),
+                SecurityEvent.resource.ilike(like_pattern),
+            )
+        )
+    if timestamp_from:
+        conditions.append(SecurityEvent.timestamp >= timestamp_from)
+    if timestamp_to:
+        conditions.append(SecurityEvent.timestamp <= timestamp_to)
 
     # Calculate total matching count
     count_stmt = select(func.count(SecurityEvent.id))

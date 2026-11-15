@@ -1,9 +1,9 @@
 """CloudSentinel Models Package."""
 
-from app.models.event import SecurityEvent
-from app.models.alert import SecurityAlert
-from app.models.incident import Incident, IncidentAudit
-from app.models.investigation import Investigation
+from .event import SecurityEvent
+from .alert import SecurityAlert
+from .incident import Incident, IncidentAudit
+from .investigation import Investigation
 
 __all__ = [
     "SecurityEvent",

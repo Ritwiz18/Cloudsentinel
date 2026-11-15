@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { Tab, DashboardOverview } from './types/api';
 import { apiClient, ApiError } from '../../api/client';
-import type { DashboardOverview, DetectionRule, Tab } from '../../types/api';
-import { ErrorState, LoadingState } from '../common/StateView';
+import { LoadingState, ErrorState } from '../common/StateView';
 import { SeverityBadge } from '../common/SeverityBadge';
 import { StatusBadge } from '../common/StatusBadge';
 import { RiskScorePill } from '../common/RiskScorePill';
@@ -9,16 +9,15 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
-  CheckCircle,
   Clock,
-  Database,
+  ChevronRight,
   Eye,
   FileCode,
   RefreshCw,
-  Server,
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Server,
   Zap,
 } from 'lucide-react';
 
@@ -26,28 +25,38 @@ interface Props {
   onNavigateTab: (tab: Tab) => void;
 }
 
+const PERIOD_OPTIONS = [
+  { value: '24h', label: '24h' },
+  { value: '7d', label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: 'custom', label: 'Custom' },
+  { value: 'all', label: 'All time' },
+];
+
 export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
   const [data, setData] = useState<DashboardOverview | null>(null);
-  const [rules, setRules] = useState<DetectionRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
+  const [activePeriod, setActivePeriod] = useState<string>('24h');
 
   const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
-    const rulesPromise =
-      typeof apiClient.getDetectionRules === 'function'
-        ? apiClient.getDetectionRules().catch(() => ({ rules: [], total: 0 }))
-        : Promise.resolve({ rules: [], total: 0 });
 
     Promise.all([
-      apiClient.getDashboardOverview(),
-      rulesPromise,
+      apiClient
+        .getDashboardOverview({
+          period: activePeriod,
+          start_date: undefined,
+          end_date: undefined,
+        })
+        .catch(() => null),
+      typeof apiClient.getDetectionRules === 'function'
+        ? apiClient.getDetectionRules().catch(() => ({ rules: [], total: 0 }))
+        : Promise.resolve({ rules: [], total: 0 }),
     ])
       .then(([overview, rulesRes]) => {
         setData(overview);
-        setRules(rulesRes?.rules || []);
         setLoading(false);
       })
       .catch((err: any) => {
@@ -58,7 +67,7 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
         }
         setLoading(false);
       });
-  }, []);
+  }, [activePeriod]);
 
   useEffect(() => {
     loadData();
@@ -83,12 +92,6 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
     { key: 'INFO', label: 'Info', color: '#64748b', count: data.alerts_by_severity.INFORMATIONAL },
   ];
 
-  const filteredAlerts =
-    filterSeverity === 'ALL'
-      ? data.recent_alerts
-      : data.recent_alerts.filter((a) => a.severity === filterSeverity);
-
-  // Posture circle math
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const strokeOffset = circumference - (data.security_posture_score / 100) * circumference;
@@ -100,6 +103,17 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
       : data.security_posture_score >= 40
       ? '#eab308'
       : '#ef4444';
+
+  // Source-aware status: distinguish real AWS events from simulator-only activity
+  const hasAwsEvents = (data.sources_seen['aws.cloudtrail'] || 0) > 0;
+  const hasSimOnly =
+    (data.sources_seen['simulator'] || 0) > 0 && !hasAwsEvents;
+
+  const socLabel = hasAwsEvents
+    ? 'Real-Time Telemetry'
+    : hasSimOnly
+      ? 'Synthetic Security Event Stream'
+      : 'No Active Events';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }} data-testid="overview-view-container">
@@ -153,7 +167,7 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-                Real-Time Telemetry
+                {socLabel}
               </span>
             </div>
             <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0.25rem 0 0' }}>
@@ -179,6 +193,26 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
             <RefreshCw size={13} className={loading ? 'spin' : ''} />
             <span>Refresh</span>
           </button>
+        </div>
+
+        {/* Period filter selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Window:</div>
+          <select
+            className="select-field"
+            value={activePeriod}
+            onChange={(e) => {
+              setActivePeriod(e.target.value);
+              loadData();
+            }}
+            style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem' }}
+          >
+            {PERIOD_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -262,7 +296,7 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
             </span>
           </div>
           <div className="metric-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <CheckCircle size={22} />
+            <ShieldCheck size={22} />
           </div>
         </div>
 
@@ -271,10 +305,10 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
           <div className="metric-info">
             <span className="metric-label">Detection Rules</span>
             <span className="metric-value" style={{ color: '#06b6d4' }}>
-              {rules.length > 0 ? rules.length : 4}
+              {data.posture_by_domain.length > 0 ? data.posture_by_domain.length : 4}
             </span>
             <span className="metric-meta">
-              AUTH, IAM, STORAGE active
+              {data.posture_by_domain.length} active rule families loaded
             </span>
           </div>
           <div className="metric-icon-box" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }}>
@@ -283,11 +317,10 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
         </div>
       </div>
 
-      {/* 3. Security Posture Summary & Threat Analytics Section */}
+      {/* 3. Security Posture Summary & Domain Panel Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', flexWrap: 'wrap' }}>
         {/* Posture Score Summary Card */}
         <div
-          className="panel-card"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -297,8 +330,8 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
             border: '1px solid #1e293b',
           }}
         >
-          <div className="panel-header" style={{ marginBottom: '1rem' }}>
-            <div className="panel-title" style={{ fontSize: '0.9rem', color: '#f1f5f9' }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.9rem', color: '#f1f5f9' }}>
               <ShieldCheck size={18} style={{ color: postureColor }} />
               Security Posture Score
             </div>
@@ -392,10 +425,8 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
           </div>
         </div>
 
-        {/* Severity Distribution & Incident Matrix Panel */}
+        {/* Domain Posture Panel */}
         <div
-          className="panel-card"
-          data-testid="severity-chart"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -405,133 +436,58 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
             border: '1px solid #1e293b',
           }}
         >
-          <div>
-            <div className="panel-header" style={{ marginBottom: '1.25rem' }}>
-              <div>
-                <div className="panel-title" style={{ fontSize: '0.95rem', color: '#f1f5f9' }}>
-                  <AlertTriangle size={18} style={{ color: '#f59e0b' }} />
-                  Alert Severity Distribution
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
-                  {totalAlertsCount} alerts prioritized across standard MITRE severity tiers
-                </div>
-              </div>
-
-              <button
-                className="btn btn-secondary"
-                style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
-                onClick={() => onNavigateTab('alerts')}
-              >
-                <Eye size={13} /> View Alert Queue
-              </button>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.95rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ShieldCheck size={18} style={{ color: '#06b6d4' }} /> Per-Domain Posture
             </div>
-
-            {/* Severity Multi-segment Bar */}
-            <div
-              className="dist-bar-container"
-              role="progressbar"
-              aria-label="Alert severity distribution"
-              style={{
-                height: 14,
-                display: 'flex',
-                borderRadius: 7,
-                overflow: 'hidden',
-                background: '#060913',
-                border: '1px solid #1e293b',
-                marginBottom: '1rem',
-              }}
-            >
-              {severityConfigs.map((seg) => {
-                if (seg.count === 0 || totalAlertsCount === 0) return null;
-                const pct = (seg.count / totalAlertsCount) * 100;
-                return (
-                  <div
-                    key={seg.key}
-                    style={{
-                      width: `${pct}%`,
-                      background: seg.color,
-                      transition: 'width 0.4s ease',
-                    }}
-                    title={`${seg.label}: ${seg.count} (${pct.toFixed(1)}%)`}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Severity Breakdown Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.75rem' }}>
-              {severityConfigs.map((seg) => {
-                const pct = totalAlertsCount > 0 ? ((seg.count / totalAlertsCount) * 100).toFixed(0) : '0';
-                return (
-                  <div
-                    key={seg.key}
-                    style={{
-                      padding: '0.65rem',
-                      background: '#060913',
-                      borderRadius: 6,
-                      border: '1px solid #1e293b',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', color: '#94a3b8' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: seg.color }} />
-                      <span>{seg.label}</span>
-                    </div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginTop: '0.2rem' }}>
-                      {seg.count}
-                      <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '0.35rem', fontWeight: 400 }}>
-                        ({pct}%)
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
+              Scores derived from implemented detection rules only; domains without checks are marked not_implemented
             </div>
           </div>
 
-          {/* Incident State Breakdown Grid */}
-          <div
-            style={{
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid #1e293b',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '0.75rem',
-            }}
-          >
-            {[
-              { label: 'OPEN INCIDENTS', count: data.incidents_by_status.OPEN, color: '#f59e0b' },
-              { label: 'INVESTIGATING', count: data.incidents_by_status.INVESTIGATING, color: '#a855f7' },
-              { label: 'REMEDIATED', count: data.incidents_by_status.RESOLVED, color: '#10b981' },
-              { label: 'FALSE POSITIVE', count: data.incidents_by_status.FALSE_POSITIVE, color: '#64748b' },
-            ].map((st) => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            {data.posture_by_domain.map((domain) => (
               <div
-                key={st.label}
-                style={{
-                  textAlign: 'center',
-                  padding: '0.6rem 0.5rem',
-                  background: '#060913',
-                  borderRadius: 6,
-                  border: '1px solid #1e293b',
-                }}
+                key={domain.domain}
+                style={{ padding: '0.75rem', background: '#060913', borderRadius: 6, border: '1px solid #1e293b' }}
               >
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: st.color, fontFamily: "'JetBrains Mono', monospace" }}>
-                  {st.count}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f1f5f9' }}>{domain.domain}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Checks: {domain.checks_run}</div>
+                  </div>
+                  <span
+                    style={{
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: 4,
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      background: domain.status === 'healthy' ? 'rgba(16,185,129,0.2)' : domain.status === 'degraded' ? 'rgba(245,158,11,0.2)' : domain.status === 'critical' ? 'rgba(239,68,68,0.2)' : 'rgba(100,116,139,0.2)',
+                      color: domain.status === 'healthy' ? '#10b981' : domain.status === 'degraded' ? '#f59e0b' : domain.status === 'critical' ? '#ef4444' : '#94a3b8',
+                    }}
+                  >
+                    {domain.status === 'healthy' ? 'Healthy' : domain.status === 'degraded' ? 'Degraded' : domain.status === 'critical' ? 'Critical' : 'Not Implemented'}
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.15rem' }}>
-                  {st.label}
-                </div>
+                {domain.score !== null && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: 100, height: 6, borderRadius: 3, background: domain.status === 'healthy' ? '#10b981' : domain.status === 'degraded' ? '#f59e0b' : '#ef4444' }} />
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f1f5f9' }}>{domain.score}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>/ 100</div>
+                  </div>
+                )}
+                <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 500 }}>{domain.rationale}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 4. Priority Alert Queue (Rich Interactive Alerts Table) */}
+      {/* 4. Priority Alert Queue */}
       <div className="panel-card" data-testid="recent-alerts-card" style={{ padding: '1.5rem', background: '#0a0f1d', border: '1px solid #1e293b' }}>
-        <div className="panel-header" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div className="panel-title" style={{ fontSize: '1.05rem', color: '#f1f5f9' }}>
+            <div style={{ fontSize: '1.05rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldAlert size={18} style={{ color: '#ef4444' }} />
               Priority Security Alert Queue
             </div>
@@ -539,46 +495,22 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
               Actionable threat detections generated by deterministic rule signatures
             </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', background: '#060913', borderRadius: 6, padding: '0.2rem', border: '1px solid #1e293b' }}>
-              {['ALL', 'CRITICAL', 'HIGH'].map((sev) => (
-                <button
-                  key={sev}
-                  onClick={() => setFilterSeverity(sev)}
-                  style={{
-                    background: filterSeverity === sev ? '#1e293b' : 'transparent',
-                    color: filterSeverity === sev ? '#06b6d4' : '#64748b',
-                    border: 'none',
-                    borderRadius: 4,
-                    padding: '0.25rem 0.65rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {sev}
-                </button>
-              ))}
-            </div>
-
-            <button
-              className="btn btn-secondary"
-              onClick={() => onNavigateTab('alerts')}
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
-            >
-              <span>View All Alerts</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
+          <button
+            className="btn btn-secondary"
+            onClick={() => onNavigateTab('alerts')}
+            style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+          >
+            <Eye size={13} /> View All Alerts
+            <ArrowRight size={13} />
+          </button>
         </div>
 
-        {filteredAlerts.length === 0 ? (
-          <div className="state-box" style={{ padding: '2rem', textAlign: 'center' }}>
+        {data.recent_alerts.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
             <ShieldCheck size={32} style={{ color: '#10b981', margin: '0 auto 0.5rem' }} />
             <div style={{ fontSize: '0.9rem', color: '#f1f5f9', fontWeight: 600 }}>No Alerts Found</div>
             <p style={{ color: '#64748b', fontSize: '0.78rem', margin: '0.25rem 0 0' }}>
-              No alerts match the selected severity filter.
+              No alerts match the selected window.
             </p>
           </div>
         ) : (
@@ -588,7 +520,7 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
                 <tr style={{ borderBottom: '1px solid #1e293b', color: '#64748b', textAlign: 'left', background: '#060913' }}>
                   <th style={{ padding: '0.75rem 0.85rem', width: 110 }}>Severity</th>
                   <th style={{ padding: '0.75rem 0.85rem' }}>Alert Title & Finding</th>
-                  <th style={{ padding: '0.75rem 0.85rem' }}>Triggered Signature</th>
+                  <th style={{ padding: '0.75rem 0.85rem' }}>Triggering Signature</th>
                   <th style={{ padding: '0.75rem 0.85rem', width: 90 }}>Risk Score</th>
                   <th style={{ padding: '0.75rem 0.85rem', width: 85 }}>Count</th>
                   <th style={{ padding: '0.75rem 0.85rem', width: 140 }}>Detected</th>
@@ -596,14 +528,10 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAlerts.slice(0, 6).map((alert) => (
+                {data.recent_alerts.slice(0, 6).map((alert) => (
                   <tr
                     key={alert.alert_id}
-                    style={{
-                      borderBottom: '1px solid #1e293b',
-                      transition: 'background-color 0.15s ease',
-                      cursor: 'pointer',
-                    }}
+                    style={{ borderBottom: '1px solid #1e293b', transition: 'background-color 0.15s ease', cursor: 'pointer' }}
                     onClick={() => onNavigateTab('alerts')}
                   >
                     <td style={{ padding: '0.75rem 0.85rem' }}>
@@ -660,32 +588,33 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
         )}
       </div>
 
-      {/* 5. Incident Response Activity & Event Activity Timeline */}
+      {/* 5. Security Activity Timeline */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
         {/* Recent Incident Activity */}
-        <div className="panel-card" data-testid="recent-incidents-card" style={{ padding: '1.5rem', background: '#0a0f1d', border: '1px solid #1e293b' }}>
-          <div className="panel-header" style={{ marginBottom: '1rem' }}>
-            <div>
-              <div className="panel-title" style={{ fontSize: '0.95rem', color: '#f1f5f9' }}>
-                <Zap size={17} style={{ color: '#a855f7' }} />
-                Correlated Incident Activity
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
-                Automated multi-alert attack clustering
-              </div>
+        <div
+          className="panel-card"
+          data-testid="recent-incidents-card"
+          style={{ padding: '1.5rem', background: '#0a0f1d', border: '1px solid #1e293b' }}
+        >
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.95rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Zap size={17} style={{ color: '#a855f7' }} /> Correlated Incident Activity
             </div>
-            <button
-              className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-              onClick={() => onNavigateTab('incidents')}
-            >
-              <span>Response</span>
-              <ArrowRight size={13} />
-            </button>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+              Automated multi-alert attack clustering
+            </div>
           </div>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+            onClick={() => onNavigateTab('incidents')}
+          >
+            <span>Response</span>
+            <ArrowRight size={13} />
+          </button>
 
           {data.recent_incidents.length === 0 ? (
-            <div className="state-box" style={{ padding: '1.75rem', textAlign: 'center' }}>
+            <div style={{ padding: '1.75rem', textAlign: 'center' }}>
               <p style={{ color: '#64748b', fontSize: '0.82rem' }}>No correlated security incidents recorded.</p>
             </div>
           ) : (
@@ -711,59 +640,52 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
                     e.currentTarget.style.borderColor = '#1e293b';
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <SeverityBadge severity={inc.severity} showIcon={false} />
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>
-                        {inc.incident_id}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <SeverityBadge severity={inc.severity} showIcon={false} />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>{inc.incident_id}</span>
+                      </div>
+                      <StatusBadge status={inc.status} />
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {inc.title}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.72rem', color: '#64748b' }}>
+                      <span>
+                        Analyst: <strong style={{ color: inc.assigned_analyst ? '#06b6d4' : '#94a3b8' }}>{inc.assigned_analyst || 'Unassigned'}</strong>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Clock size={12} />
+                        {new Date(inc.first_seen).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <StatusBadge status={inc.status} />
                   </div>
-
-                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {inc.title}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.72rem', color: '#64748b' }}>
-                    <span>
-                      Analyst: <strong style={{ color: inc.assigned_analyst ? '#06b6d4' : '#94a3b8' }}>{inc.assigned_analyst || 'Unassigned'}</strong>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <Clock size={12} />
-                      {new Date(inc.first_seen).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
         </div>
 
         {/* Event Activity Timeline Feed */}
         <div className="panel-card" style={{ padding: '1.5rem', background: '#0a0f1d', border: '1px solid #1e293b' }}>
-          <div className="panel-header" style={{ marginBottom: '1rem' }}>
-            <div>
-              <div className="panel-title" style={{ fontSize: '0.95rem', color: '#f1f5f9' }}>
-                <Activity size={17} style={{ color: '#38bdf8' }} />
-                Event Activity Timeline
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
-                Normalized security events in chronological stream
-              </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.95rem', color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Activity size={17} style={{ color: '#38bdf8' }} /> Event Activity Timeline
             </div>
-            <button
-              className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-              onClick={() => onNavigateTab('events')}
-            >
-              <span>Event Explorer</span>
-              <ArrowRight size={13} />
-            </button>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+              Normalized security events in chronological stream
+            </div>
           </div>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+            onClick={() => onNavigateTab('events')}
+          >
+            <span>Event Explorer</span>
+            <ArrowRight size={13} />
+          </button>
 
           {data.recent_events.length === 0 ? (
-            <div className="state-box" style={{ padding: '1.75rem', textAlign: 'center' }}>
+            <div style={{ padding: '1.75rem', textAlign: 'center' }}>
               <p style={{ color: '#64748b', fontSize: '0.82rem' }}>No events recorded in telemetry intake.</p>
             </div>
           ) : (
@@ -771,50 +693,19 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
               {data.recent_events.slice(0, 5).map((e) => (
                 <div
                   key={e.event_id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.65rem 0.75rem',
-                    background: '#060913',
-                    borderRadius: 6,
-                    border: '1px solid #1e293b',
-                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 0.75rem', background: '#060913', borderRadius: 6, border: '1px solid #1e293b' }}
                 >
                   <span
                     className={`badge-outcome ${e.outcome.toUpperCase()}`}
-                    style={{
-                      fontSize: '0.68rem',
-                      padding: '0.2rem 0.45rem',
-                      borderRadius: 4,
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                    }}
+                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem', borderRadius: 4, fontWeight: 600, textTransform: 'uppercase' }}
                   >
                     {e.outcome}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        color: '#f1f5f9',
-                        fontWeight: 600,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {e.event_type}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {e.source}
-                      {e.actor ? ` · ${e.actor}` : ''}
-                      {e.region ? ` · ${e.region}` : ''}
-                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#f1f5f9', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.event_type}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.source}{e.actor ? ` · ${e.actor}` : ''}{e.region ? ` · ${e.region}` : ''}</div>
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>
-                    {new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace" }}>{new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
               ))}
             </div>
@@ -824,76 +715,32 @@ export const OverviewView: React.FC<Props> = ({ onNavigateTab }) => {
 
       {/* 6. Detection Rule Activity & Health Indicators Footer */}
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '1rem',
-          padding: '1.25rem',
-          background: '#0a0f1d',
-          borderRadius: 8,
-          border: '1px solid #1e293b',
-        }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', padding: '1.25rem', background: '#0a0f1d', borderRadius: 8, border: '1px solid #1e293b' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 6,
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#10b981',
-            }}
-          >
+          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
             <ShieldCheck size={18} />
           </div>
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f1f5f9' }}>Detection Rule Engine</div>
             <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-              {rules.length > 0 ? `${rules.length} active rules loaded` : 'Deterministic Signatures Active'}
+              {data.posture_by_domain.length > 0 ? `${data.posture_by_domain.length} active rule families` : 'Deterministic Signatures Active'}
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 6,
-              background: 'rgba(56, 189, 248, 0.1)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#38bdf8',
-            }}
-          >
+          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
             <Server size={18} />
           </div>
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f1f5f9' }}>API & Ingestion Gateway</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>FastAPI 0.115 Async Service</div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>FastAPI Async Service</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 6,
-              background: 'rgba(168, 85, 247, 0.1)',
-              border: '1px solid rgba(168, 85, 247, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#a855f7',
-            }}
-          >
+          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7' }}>
             <Database size={18} />
           </div>
           <div>

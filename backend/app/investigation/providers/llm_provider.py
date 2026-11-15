@@ -4,10 +4,10 @@ import re
 from typing import Any, Dict, List, Optional
 import httpx
 
-from app.core.config import settings
-from app.investigation.context import InvestigationContext, InvestigationResult
-from app.investigation.providers.base import BaseInvestigationProvider
-from app.investigation.providers.rule_based import RuleBasedInvestigationProvider
+from ...core.config import settings
+from ..context import InvestigationContext, InvestigationResult
+from .base import BaseInvestigationProvider
+from .rule_based import RuleBasedInvestigationProvider
 
 logger = logging.getLogger("cloudsentinel.investigation.llm")
 
