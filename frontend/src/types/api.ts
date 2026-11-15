@@ -6,20 +6,22 @@ export type AlertStatusLevel = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'FALSE_PO
 // Shared navigation tab identifier (used by the app shell and dashboard views)
 export type Tab =
   | 'overview'
+  | 'command-center'
   | 'threats'
+  | 'events'
   | 'alerts'
   | 'incidents'
+  | 'rules'
+  | 'audit'
+  | 'integrations'
+  | 'settings'
+  | 'operations'
+  | 'investigate'
   | 'assets'
   | 'aws'
   | 'iam'
   | 'network'
-  | 'cspm'
-  | 'investigate'
-  | 'audit'
-  | 'integrations'
-  | 'events'
-  | 'operations'
-  | 'settings';
+  | 'cspm';
 
 export interface HealthEngines {
   detection?: { provider: string; rules: string[] };
